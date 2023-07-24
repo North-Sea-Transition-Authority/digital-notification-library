@@ -1,60 +1,214 @@
 # What does the consumer API interaction look like?
 
 * Status: proposed
-* Deciders: 
+* Deciders:
 * Date: 2023-06-14
 
 Technical Story: [FN-45](https://jira.fivium.co.uk/browse/FN-45)
 
 ## Context and Problem Statement
 
-We need to decide what the API interactions is going to look like between the consuming services and Fivium notify 
+We need to decide what the API interactions is going to look like between the consuming services and Fivium notify
 library.
 
 ## Decision Drivers
 
 * Need to support service being able to send emails and SMS notifications
 * No current requirement to support sending letters
-* Need to be able to handle log correlation IDs being provided from consumers 
+* Need to be able to handle log correlation IDs being provided from consumers
 * Easy for consumers to call
 * Easy support for future changes to required parameters
 * Ensure templates are uniquely identifiable
 
 ## Considered Options
 
-* Option 1: Single class and methods for all notification types
-* Option 2: Notification specific classes and methods
-* Option 3: Option 1 but without a single object param
-* Option 4: Overloaded methods for different parameter requirements and notification types
-
-## Some useful GOV.UK notify notes
-
-* GOV.UK notify has a `reference` property consumers can set which appears as the `client_reference` when looking on
-  the dashboards. It is used to [uniquely identify a notification or a batch of notifications](https://docs.notifications.service.gov.uk/java.html#send-an-email-arguments-reference-required).
-  I am suggesting we use this for our log correlation ID. If you don't provide one then a `client_reference` is not set.
-* GOV.UK notify have a [emailReplyToId](https://docs.notifications.service.gov.uk/java.html#emailreplytoid-optional)
-  and a [smsSenderId](https://docs.notifications.service.gov.uk/java.html#smssenderid-optional) which are UUIDs which
-  link to a reply to email address or the name of the sms sender. These need to be added to Notify manually through the
-  web client. As both are UUIDs we could simply a single property on our notification class representing this regardless
-  if it is for sms or email.
+* Option 1: Methods per notification type with multiple parameters
+* Option 2: Single class and methods for all notification types with multiple parameters
+* Option 3: Single parameter methods for each notification type
 
 ## Decision Outcome
 
-Regardless of the option chosen we would do a validation prior to sending the request to notify to send which would 
-check that all the mail merge fields have been provided (excluding any optionals fields). This can be done by getting 
-the template based on ID which will return the mail merge fields for us to compare against the consumer provided fields.
+Option 1 is the preferred solution as the API design would both be the most expected by developers and also reads the
+clearest when reference in the code. This is very similar to the existing GOV.UK notify library and also follows close
+to existing API designs in EPA where the overloaded methods are used.
 
-Option 3 would allow us to do this check construction of the mail merge template but with option 1 or 2 we would do 
-the check at time of constructing the whole notification object which is less desirable.
+```java
+class NotificationService {
 
-I think the preferred options are 1 or 3 with my preference being more towards option 1 to more easily allow optional
-values to be provided without needing to have method overloads (optional params being log correlation ID and sender ID).
-If we are happy with the method overloading in the client API then option 3 may be preferable. If we ever needed to 
-change the signature we could easily deprecate methods and remove in subsequent versions.
+  void emailTeamMembers() {
+  
+      // option 1 is obvious what is happening
+      notificationClient.sendEmail();
+          
+      // option 2 is less clear as you don't know if it's an email or SMS from just reading the code
+      notificationClient.sendNotification();
+  }
+}
+```
 
-## Pros and Cons of the Options 
+The primary downside of lots of overloaded methods if new params are added in the future could be mitigated by
+deprecating old methods and removing them in subsequent releases in a similar way in which the spring releases do.
 
-### Option 1: Single class and methods for all notification types
+## Pros and Cons of the Options
+
+### Option 1: Methods per notification type with multiple parameters
+
+Similar to the existing GOV.UK notify client we can provide separate `sendEmail` and `sendSms` methods. There will be
+various overloaded methods for each notification type. If we need to support a new notification type in the future
+additional methods will simply be added.
+
+```java
+class NotificationClient {
+
+    NotificationId sendEmail(EmailNotification emailNotification, 
+                             EmailRecipient recipient,
+                             DomainReference domainReference,
+                             LogCorrelationId logCorrelationId) {
+        // ...
+    }
+
+    NotificationId sendEmail(EmailNotification emailNotification,
+                             EmailRecipient recipient,
+                             DomainReference domainReference) {
+        // ...
+    }
+
+    NotificationId sendSms(SmsNotification smsNotification,
+                           SmsRecipient recipient,
+                           DomainReference domainReference,
+                           LogCorrelationId logCorrelationId) {
+        // ...
+    }
+
+    NotificationId sendSms(SmsNotification smsNotification,
+                           SmsRecipient recipient,
+                           DomainReference domainReference) {
+        // ...
+    }
+}
+```
+
+The following class designs will be the similar for all options but are included here for completeness.
+
+In the above example an `EmailNotification` and `SmsNotification` would be a class representing the GOV.UK notify
+template to use and the mail merge properties. As there are currently no difference between sending an email and sms in
+terms of the notification we could simply have a `Notification` class if we think that is preferable.
+
+```java
+class EmailNotification {
+
+    private String templateId;
+
+    private Map<String, Object> mailMergeProperties = new HashMap<>();
+    
+    // ...
+    
+    static class NotificationBuilder(String templateId) {
+
+        private String templateId;
+
+        private Map<String, Object> mailMergeProperties = new HashMap<>();
+
+        NotificationBuilder withMailMergeField(String key, Object value) {
+            mailMergeProperties.add(key, value);
+            return this;
+        }
+        
+        NotificationBuilder withMailMergeFields(Map<String, Object> mailMergeProperties) {
+            mailMergeProperties.addAll(mailMergeProperties);
+            return this;
+        }
+        
+        EmailNotification build() {
+            return new EmailNotification(templateId, mailMergeProperties);
+        }
+    }
+
+}
+```
+
+The `EmailRecipient` and `SmsRecipient` will be interfaces which can be added to classes representing people who should
+receive the notifications. In order to support being able to send notifications to a single email address or phone
+number, a static method will exist on the interface so an object is not required in order to send notifications.
+
+```java
+interface EmailRecipient {
+
+    String getEmailAddress();
+
+    static EmailRecipient of(String emailAddress) {
+        return new EmailRecipient() {
+            @Override
+            public String getEmailAddress() {
+                return emailAddress;
+            }
+        };
+    }
+}
+```
+
+Assuming the consumers have a `TeamMember` class representing someone who would receive an email, the implementation
+would be as follows:
+
+```java
+class TeamMember implements EmailRecipient {
+
+    // ...
+    
+    private String emailAddress;
+
+    @Override
+    public String getEmailAddress() {
+        return emailAddress;
+    }
+}
+```
+
+An example usage of sending an email to members of a team and a hard coded email address is as follows:
+
+```java
+class NotificationService {
+
+  void emailTeamMembers(Team team) {
+
+      EmailNotification notification = constructEmail();
+      
+      List<TeamMember> teamMembers = getTeamMembers(team);
+      
+      var domainReference = new DomainReference(team.id(), "TEAM");
+  
+      // email all team members
+      teamMembers().forEach(teamMember -> sendEmail(notification, teamMember, domainReference));
+  
+      // send email to a fixed email address
+      sendEmail(notification, EmailRecipient.of("someone@example.com"), domainReference);
+  }
+}
+```
+
+GOV.UK notify has a `reference` property consumers can set which appears as the `client_reference` when looking on
+the dashboards. It is used to [uniquely identify a notification or a batch of notifications](https://docs.notifications.service.gov.uk/java.html#send-an-email-arguments-reference-required).
+I am suggesting we use this for our log correlation ID. If you don't provide one then a `client_reference` is not set.
+This way the log correlation ID will make its way all the way to the GOV.UK notify logs.
+
+The `DomainReference` will be used to allow consumers to associate a notification with a related domain object , e.g.
+a team, application etc. This domain reference will be written to the libraries database table. An example being
+if all members of a team were sent an email then the domain reference could be `new DomainReference("123", "TEAM")`.
+Developers would be able to look in the database and see for a give domain object the emails that were sent for it.
+This data wouldn't go to notify as they only provide a single `client_referene` property which we are already using for
+the log correlation ID.
+
+Ignoring the `EmailRecipient`, `LogCorrelationId` and `DomainReference` shared concepts, the pros and cons of this
+option are:
+
+* Good, because this is the more expected API from the consumers perspective and similar to methods on the notify client
+* Good, because only exposes methods we know we have use cases for
+* Good, because methods for one notification type can change independently of each other
+* Good, because we can easily extend to support letter types by adding new methods
+* Bad, because if we want to add a new param we need to create a new method and possibly deprecate others and look to
+  remove them over time
+
+### Option 2: Single class and methods for all notification types with multiple parameters
 
 When comparing the [SMS](https://docs.notifications.service.gov.uk/java.html#send-a-text-message) and
 [email](https://docs.notifications.service.gov.uk/java.html#send-an-email) documentation, both notification types take
@@ -66,290 +220,101 @@ the same parameters:
 - a reference identifier for consumers (e.g a log correlation ID)
 - an identifier for the sender (UUID representing a reply to email address or name of sender for SMS)
 
-As a result we could create a notification class which represent either an email or an SMS message and streamline our
-client API to something as simple as:
+As a result we could create single client API such as:
 
 ```java
 class NotificationClient {
 
-  /**
-   * Send a single notification
-   */
-  NotificationResponse sendNotification(Notification notification) {
-    // ...
+  NotificationId sendNotification(Notification notification, 
+                                  String recipient, 
+                                  DomainReference domainReference, 
+                                  LogCorrelationId logCorrelationId) {
+  // ...
   }
 
-  /**
-   * Util for sending multiple notifications. This would just be a forEach and call the above method. This is to avoid 
-   * consumers forEach'ing over their recipients because notify doesn't allow bulk send through the Java API. Most 
-   * consumers are sending emails to all people in certain roles or teams so is quite a common use case.
-   */
-  NotificationResponse sendNotifications(Collection<Notification> notifications) {
-    // ...
-  }
-
-  /**
-   * Probably only useful for verify templateIds are correct if used in enums or as environment variables. Mainly see
-   * this for use in actuators style checks as opposed to used in the services
-   */
-  NotificationTemplate getTemplateById(String templateId) {
-    // ...
-  } 
-}
-```
-
-Where a `Notification` could look like
-
-```java
-class Notification {
-
-  private final String templateId;
-  
-  private final ContactableRecipient recipient;
-
-  private final Map<String, Object> mailMergeFields;
-
-  private final String logCorrelationId;
-
-  private final String senderId;
-
-  private Notification(...) {
-    this.templateId = templateId;
-    // other properties excluded
-  }
-
-  static Builder builder(String templateId, ContactableRecipient recipient) {
-    return new Builder(templateId, recipient);
-  }
-
-  static class Builder {
-
-    private final String templateId;
-
-    // other properties excluded
-
-    Builder(String templateId, String recipient) {
-      this.templateId = templateId;
-      this.recipient = recipient;
-    }
-
-    Builder withMergeField(String key, Object value) {
-      mailMergeFields.put(key, value);
-      return this;
-    }
-
-    Builder withMergeFields(Map<String, Object> mailMergeFields) {
-      this.mailMergeFields.putAll(mailMergeFields);
-      return this;
-    }
-    
-    // other builder methods excluded
-
-    Notification build() {
-      return new Notification(...);
-    }
+  NotificationId sendNotification(Notification notification, 
+                                  String recipient, 
+                                  DomainReference domainReference) {
+  // ...
   }
 }
 ```
 
-Where a `ContactableRecipient` would be an interface (see below) that consumers could add to their object that represent
-users. For example, a common use case is email all members of a team so consumers would already have objects representing
-a team member and could implement the following interface. For contact single email addresses or phone numbers such as
-regulator shared email inboxes they could use the `ContactableRecipient.withEmailAddress("generic@regulator.com)`.
+Where the `DomainReference` `LogCorrelationId` concepts are the same as option 1 and the `Notification` is the same as
+the `EmailNotification` class.
 
-```java
-interface ContactableRecipient {
-  
-  String getNotificationEmailAddress();
-
-  String getNotificationSmsNumber();
-
-  static ContactableRecipient withEmailAddress(String emailAddress) {
-    return new ContactableRecipient() {
-      @Override
-      public String getNotificationEmailAddress() {
-        return emailAddress;
-      }
-
-      @Override
-      public String getNotificationSmsNumber() {
-        throw new UnsupportedOperationException("not allowed");
-      }
-    };
-  }
-
-  static ContactableRecipient withSmsNumber(String smsNumber) {
-    return new ContactableRecipient() {
-      @Override
-      public String getNotificationEmailAddress() {
-        throw new UnsupportedOperationException("not allowed");
-      }
-
-      @Override
-      public String getNotificationSmsNumber() {
-        return smsNumber;
-      }
-    };
-  }
-}
-```
-
-In our call to the notify API we would first get the template using the ID provided and then check the type and call
-the relevant notify method, for example:
-
-```java
-class NotificationService {
-
-  NotificationResponse sendNotification(Notification notification) {
-    var template = govkNotifyClient.getTemplateById(notification.getTemplateId());
-    return switch (template.getType) {
-      EMAIL -> govukNotifyClient.sendEmail(notification.getRecipient().getEmailAddress(), ...);
-      SMS -> govukNotifyClient.sendSms(notification.getRecipient().getSmsNumber(), ...);
-    };
-  }
-}
-```
-
-If a consumer wanted to send an email or an SMS they would simply do
-
-```java
-var notification = Notification.builder("template-id", contactableRecipient)
-    .withMergeField("someMailMergeField", "some mail merge value")
-    .withLogCorrelationId("log-correlation-id")
-    .build();
-
-notificationClient.sendNotification(notification);
-```
-
-* Good, because only provides method we actually have use cases for
-* Good, because we don't need to provide overloaded methods for optional params for both sms and email methods
-* Good, because using single objects as parameter avoids breaking changes to consumers or needing to have deprecated
-  methods hanging around in the client
-* Good, because we could provide a method to send a collection of notifications instead of the consumers needing to loop and send
-* Good, because if the consumer wanted to switch the template from email to SMS they don't need to change the code, just the ID
-* Bad, because would consumers be expecting `sendSms` and `sendEmail` methods like gov client provides? (do we care?)
-* Bad, because wouldn't easily support letter notification types as not all properties are the same (do we care?)
-* Bad, because there isn't a good separation of building the mail merge template and providing other information e.g log correlation, sender ID etc
-
-### Option 2: Notification specific classes and methods
-
-In a similar concept to option 1 we could have specific classes representing an email and sms notification and then
-specific email and sms methods exposed to the consumers. Assumption here is that both `EmailNotification` and 
-`TextNotification` classes are similar to the `Notification` class used in option 1. The log correlation ID and sender 
-ID concepts would be the same here just wrapped inside other classes.
-
-```java
-class NotificationClient {
-  
-  NotificationResponse sendEmail(EmailNotification notification) {
-    // ...
-  }
-  
-  NotificationResponse sendEmails(Collection<EmailNotification> notifications) {
-    // ...
-  }
-
-  NotificationResponse sendText(TextNotification notification) {
-    // ...
-  }
-
-  NotificationResponse sendTexts(Collection<TextNotification> notifications) {
-    // ...
-  }
-
-  NotificationTemplate getTemplateById(String templateId) {
-    // ...
-  } 
-}
-```
-
-* Good, because might be a more expected API from the consumers perspective and similar to methods on the notify client
-* Good, because only exposes methods we know we have use cases for
-* Good, because using single objects as parameter avoids breaking changes to consumers or needing to have deprecated
-  methods hanging around in the client
-* Good, because we can easily extend to support letter types if we needed to as represented by different objects 
-  (not sure if we would ever want to, but it would work)
-* Bad, because `EmailNotification` and `TextNotification` objects would be the same under the hood 
-  (would likely mitigate with abstract class)
-* Bad, because if you wanted to change from an email to sms notification it would be a code change
-
-### Option 3: Option 1 but without a single object param
-
-This option is very similar to option 1 whereby there is a single `sendNotification` method regardless of if the 
-template is for a email or sms. The main difference being instead of consumers passing a single object to the library 
-it would be broken up into different classes.
-
-```java
-class NotificationClient {
-
-  /**
-   * Send a single notification without a log correlation ID or sender ID
-   */
-  NotificationResponse sendNotification(NotificationTemplate notificationTemplate, ContactableRecipient recipient) {
-    // ...
-  }
-
-  /**
-   * Send a single notification with a log correlation ID but no sender ID
-   */
-  NotificationResponse sendNotification(NotificationTemplate notificationTemplate, 
-                                        ContactableRecipient recipient, 
-                                        LogCorrelationId logCorrelationId) {
-    // ...
-  }
-
-  /**
-   * Send a single notification with a log correlation ID and sender ID
-   */
-  NotificationResponse sendNotification(NotificationTemplate notificationTemplate, 
-                                        ContactableRecipient recipient,
-                                        LogCorrelationId logCorrelationId, 
-                                        SenderId senderId) {
-    // ...
-  }
-}
-```
-
-In this case the `NotificationTemplate` would contain the mail merge fields
-
-```java
-NotificationTemplate notificationTemplate = notificationClient.getTemplateById("template-id")
-  .withMergeField("RECIPIENT_NAME", applicantTeamMember.name())
-  .withMergeField("CASE_REFERENCE", "ABC/2023/1")
-  .merge();
-```
-
-The `ContactableRecipient`, `LogCorrelationId` and `SenderId` are the same concepts from option 1.
-
-* Good, because only provides method we actually have use cases for
+* Good, because avoids very similar methods for email and sms sending
 * Good, because we don't need to provide overloaded methods for optional params for both sms and email methods
 * Good, because we could provide a method to send a collection of notifications instead of the consumers needing to loop and send
-* Good, because if the consumer wanted to switch the template from email to SMS they don't need to change the code, just the ID
-* Good, because we split up the concept of getting the template and building up the mail merge data from the call to send
-* Bad, because if we add extra params to methods we would have to deprecate existing methods but keep them for backwards compatibility
-* Bad, requires three methods exposed just to handle different client requirements (log correlation ID, sender ID). Could
-  mitigate this as clients could just pass `null` but not as nice API.
-* Bad, because would consumers be expecting `sendSms` and `sendEmail` methods like gov client provides? (do we care?)
-* Bad, because wouldn't easily support letter notification types as not all properties are the same (do we care?)
- 
-### Option 4: Overloaded methods for different parameter requirements and notification types
+* Good, because if the consumer wanted to switch the template from email to SMS they don't need to change the code,
+  just the template ID. Not sure if this is a benefit as developers would expect to change some code.
+* Bad, because would consumers be expecting `sendSms` and `sendEmail` methods like gov client provides?
+* Bad, because wouldn't easily support letter notification types as not all properties are the same
 
-Similar to current GOV.UK client whereby there are multiple methods with different parameter options
+### Option 3: Single parameter methods for each notification type
+
+We could combine the recipient, domain reference and log correlation ID into the `EmailNotification` and
+`SmsNotification` classes. This would mean we construct a single object with all of the properties for a notifcation.
 
 ```java
 class NotificationClient {
-  
-  NotificationResponse sendEmail(String templateId, String recipientEmail, Map<String, Object> mailMergeFields) {
-    // ...
-  }
 
-  NotificationResponse sendEmail(String templateId, String recipientEmail, Map<String, Object> mailMergeFields, String logCorrelationId) {
-    // ...
+    NotificationId sendEmail(EmailNotification emailNotification) {
+        // ...
+    }
+
+    NotificationId sendSms(SmsNotification smsNotification) {
+        // ...
+    }
+}
+```
+
+An example of how this might look is below:
+
+```java
+class EmailNotification {
+
+  private String templateId;
+  
+  private Map<String, Object> mailMergeProperties = new HashMap<>();
+  
+  private EmailRecipient recipient;
+  
+  private DomainReference domainReference;
+  
+  private LogCorrelationId logCorrelationId;
+  
+  // ...
+  
+  static class NotificationBuilder(String templateId, EmailRecipient recipient, DomainReference domainReference) {
+  
+      private Map<String, Object> mailMergeProperties = new HashMap<>();
+  
+      private LogCorrelationId logCorrelationId;
+  
+      NotificationBuilder withMailMergeField(String key, Object value) {
+          mailMergeProperties.add(key, value);
+          return this;
+      }
+  
+      NotificationBuilder withMailMergeFields(Map<String, Object> mailMergeProperties) {
+          mailMergeProperties.addAll(mailMergeProperties);
+          return this;
+      }
+      
+      NotificationBuilder withLogCorrelationId(LogCorrelationId logCorrelationId) {
+          this.logCorrelationId = logCorrelationId;
+          return this;
+      }
+  
+      EmailNotification build() {
+          return new EmailNotification(templateId, mailMergeProperties, recipient, domainReference, logCorrelationId);
+      }
   }
 }
 ```
 
-* Good, easy for consumers as same as existing GOV.UK client
-* Bad, because lots of methods to maintain
-* Bad, because easy to make an error and pass in wrong value
-* Bad, because any new parameters in future results in yet more method overloads
+* Good, because if we need to add a new property to either notification we can do without it being a breaking change
+  for the consumer or needing an overloaded method
+* Bad, because most params are required so not that much of a valid use case for a builder
+* Bad, because the API would be harder to read when used in the code as all the important info is hidden in an object
