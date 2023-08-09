@@ -144,7 +144,7 @@ trigger:
 volumes:
   - name: webfiles
     host:
-      path: /home/fivium/www/digital-notification--library
+      path: /home/fivium/www/digital-notification-library
 
   - name: drone-cache
     host:
