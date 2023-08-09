@@ -6,6 +6,7 @@ This log lists the architectural decisions for Secure Share.
 
 * [ADR-0001](0001-consumer-api-interaction.md) - What does the consumer API interaction look like?
 * [ADR-0002](0002-notification-data-model.md) - What does the data model look like?
+* [ADR-0003](0003-scheduling-sending-and-retries.md) - How are we going to handle sending and retries?
 * [ADR-1](adr-template.md) - [short title of solved problem and solution]
 
 <!-- adrlogstop -->

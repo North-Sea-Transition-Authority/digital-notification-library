@@ -1,7 +1,7 @@
 # What does the data model look like?
 
-* Status: proposed
-* Deciders:
+* Status: approved
+* Deciders: James Barnett, Chris Tasker
 * Date: 2023-07-13
 
 Technical Story: [FN-47](https://fivium.atlassian.net/browse/FN-47]) and [FN-48](https://fivium.atlassian.net/browse/FN-48)
@@ -64,10 +64,10 @@ column.
 If a consumer wanted to send one email and one SMS for the same template, domain reference and log correlation the
 data model would look like the below:
 
-| id      | type  | notify_template_id | recipient           | domain_reference_id | domain_reference_type | log_correlation_id | mail_merge_data                                            | status          | provider_status   | created_at          | sent_at             | retried_at          | retry_attempts |
-|:--------|:------|:-------------------|:--------------------|:--------------------|:----------------------|:-------------------|:-----------------------------------------------------------|:----------------|:------------------|:--------------------|:--------------------|:--------------------|:---------------|
-| 123-456 | EMAIL | 456-789            | someone@example.com | 789-123             | APPLICATION           | 123-abc            | { "mail-merge-fields": [{"key": "name", "value": "Jill"}]} | DELIVERED       | DELIVERED         | 2023-07-12 13:05:06 | 2023-07-12 13:05:16 | null                | 0              |
-| 456-123 | SMS   | 456-789            | 07915832679         | 789-123             | APPLICATION           | 123-abc            | { "mail-merge-fields": [{"key": "name", "value": "Jill"}]} | FAILED_RETRYING | TEMPORARY_FAILURE | 2023-07-12 13:05:06 | null                | 2023-07-12 14:05:00 | 1              |
+| id      | type  | notify_template_id | recipient           | domain_reference_id | domain_reference_type | log_correlation_id | mail_merge_data                                            | status    | provider_status   | created_at          | sent_at             | retried_at          | retry_attempts |
+|:--------|:------|:-------------------|:--------------------|:--------------------|:----------------------|:-------------------|:-----------------------------------------------------------|:----------|:------------------|:--------------------|:--------------------|:--------------------|:---------------|
+| 123-456 | EMAIL | 456-789            | someone@example.com | 789-123             | APPLICATION           | 123-abc            | { "mail-merge-fields": [{"key": "name", "value": "Jill"}]} | DELIVERED | DELIVERED         | 2023-07-12 13:05:06 | 2023-07-12 13:05:16 | null                | 0              |
+| 456-123 | SMS   | 456-789            | 07915832679         | 789-123             | APPLICATION           | 123-abc            | { "mail-merge-fields": [{"key": "name", "value": "Jill"}]} | RETRYING  | TEMPORARY_FAILURE | 2023-07-12 13:05:06 | null                | 2023-07-12 14:05:00 | 1              |
 
 
 * Good, because it reduces the need to near identical tables per type of notification
