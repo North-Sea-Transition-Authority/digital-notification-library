@@ -1,0 +1,2 @@
+rootProject.name = 'digital-notification-library'
+include "spring-boot-starter"
