@@ -1,7 +1,7 @@
 # What does the consumer API interaction look like?
 
-* Status: proposed
-* Deciders:
+* Status: approved
+* Deciders: James Barnett, Chris Tasker
 * Date: 2023-06-14
 
 Technical Story: [FN-45](https://jira.fivium.co.uk/browse/FN-45)
