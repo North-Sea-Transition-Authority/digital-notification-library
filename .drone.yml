@@ -41,16 +41,17 @@ steps:
         - ./gradlew :spring-boot-starter:checkstyleMain :spring-boot-starter:test --continue --parallel --max-workers=3
       build_image: repo1.dev.fivium.local:5000/docker-compose-java17
 
-  - name: sync-reports
-    image: alpine:3
-    commands:
-      - mkdir -p /var/webfiles/${DRONE_BUILD_NUMBER}
-      - cp -r spring-boot-starter/build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
-    volumes:
-      - name: webfiles
-        path: /var/webfiles
-    when:
-      status: [ success, failure ]
+# removed as no test so no reports to sync
+#  - name: sync-reports
+#    image: alpine:3
+#    commands:
+#      - mkdir -p /var/webfiles/${DRONE_BUILD_NUMBER}
+#      - cp -r spring-boot-starter/build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
+#    volumes:
+#      - name: webfiles
+#        path: /var/webfiles
+#    when:
+#      status: [ success, failure ]
 
   - name: code-analysis
     image: repo1.dev.fivium.local:5000/sonarcloud-scan-java17:latest
