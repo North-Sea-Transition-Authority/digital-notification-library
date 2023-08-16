@@ -57,6 +57,15 @@ pluginManager.withPlugin('maven-publish') {
                 artifactId = "digital-notification-library-spring-boot-starter"
 
                 from components.java
+
+                versionMapping {
+                    usage('java-api') {
+                        fromResolutionOf('runtimeClasspath')
+                    }
+                    usage('java-runtime') {
+                        fromResolutionResult()
+                    }
+                }
             }
         }
         repositories {
