@@ -1,5 +1,8 @@
 package uk.co.fivium.digitalnotificationlibrary;
 
-class ExampleClass {
+/**
+ * Example documentation comment
+ */
+public class ExampleClass {
 
 }
