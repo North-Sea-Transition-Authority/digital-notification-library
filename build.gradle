@@ -65,6 +65,7 @@ dependencies {
 
     // external dependencies
     implementation 'uk.gov.service.notify:notifications-java-client:4.1.0-RELEASE'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
 
     // test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -86,9 +87,8 @@ dependencies {
 
     // external dependencies
     integrationTestImplementation 'org.testcontainers:postgresql:1.19.1'
-    // looks to be an issue using org.wiremock:wiremock from spring boot 3.2.0 onwards
-    // as you get a ClassDefNotFound exception
-    integrationTestImplementation 'org.wiremock:wiremock-standalone:3.2.0'
+    integrationTestImplementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
+    integrationTestImplementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.10.0'
 
 }
 
@@ -153,6 +153,7 @@ checkstyle {
     toolVersion '9.3'
     ignoreFailures = false
     maxWarnings = 0
+    configProperties = [ "suppressionFile" : project(':').file('devtools/checkstyle-suppression.xml')]
 }
 
 jacocoTestReport {

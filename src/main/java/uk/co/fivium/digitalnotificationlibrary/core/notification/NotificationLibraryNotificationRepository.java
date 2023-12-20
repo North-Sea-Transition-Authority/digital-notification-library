@@ -1,6 +1,10 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,4 +15,8 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface NotificationLibraryNotificationRepository extends CrudRepository<Notification, UUID> {
+
+  List<Notification> findNotificationByStatusOrderByRequestedOnAsc(NotificationStatus status, Pageable pageable);
+
+  Set<Notification> findAllByIdInAndType(Collection<UUID> id, NotificationType type);
 }

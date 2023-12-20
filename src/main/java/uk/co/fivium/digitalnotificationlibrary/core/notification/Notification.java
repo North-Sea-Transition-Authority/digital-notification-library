@@ -31,6 +31,8 @@ class Notification {
 
   private String notifyTemplateId;
 
+  private String notifyNotificationId;
+
   private String notifyStatus;
 
   private String recipient;
@@ -45,6 +47,15 @@ class Notification {
   private String logCorrelationId;
 
   private Instant requestedOn;
+
+  private String failureReason;
+
+  protected Notification() {
+  }
+
+  Notification(UUID id) {
+    this.id = id;
+  }
 
   UUID getId() {
     return id;
@@ -72,6 +83,14 @@ class Notification {
 
   void setNotifyTemplateId(String notifyTemplateId) {
     this.notifyTemplateId = notifyTemplateId;
+  }
+
+  String getNotifyNotificationId() {
+    return notifyNotificationId;
+  }
+
+  void setNotifyNotificationId(String notifyNotificationId) {
+    this.notifyNotificationId = notifyNotificationId;
   }
 
   String getNotifyStatus() {
@@ -130,6 +149,14 @@ class Notification {
     this.requestedOn = requestedOn;
   }
 
+  String getFailureReason() {
+    return failureReason;
+  }
+
+  void setFailureReason(String failureReason) {
+    this.failureReason = failureReason;
+  }
+
   @Override
   public String toString() {
     return "Notification{" +
@@ -137,6 +164,7 @@ class Notification {
         ", type=" + type +
         ", status=" + status +
         ", notifyTemplateId='" + notifyTemplateId + '\'' +
+        ", notifyNotificationId='" + notifyNotificationId + '\'' +
         ", notifyStatus='" + notifyStatus + '\'' +
         ", recipient='" + recipient + '\'' +
         ", mailMergeFields=" + mailMergeFields +
@@ -144,6 +172,7 @@ class Notification {
         ", domainReferenceType='" + domainReferenceType + '\'' +
         ", logCorrelationId='" + logCorrelationId + '\'' +
         ", requestedOn=" + requestedOn +
+        ", failureReason='" + failureReason + '\'' +
         '}';
   }
 }

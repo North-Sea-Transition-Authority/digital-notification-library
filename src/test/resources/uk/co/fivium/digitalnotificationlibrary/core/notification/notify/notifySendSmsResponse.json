@@ -1,0 +1,12 @@
+{
+  "id": "cfa37595-2c13-42c5-b647-396315919421",
+  "content": {
+    "body": "body",
+    "subject": "subject"
+  },
+  "template": {
+    "id": "abc12395-2c13-42c5-b647-396315919421",
+    "version": 1,
+    "uri": "template-uri"
+  }
+}

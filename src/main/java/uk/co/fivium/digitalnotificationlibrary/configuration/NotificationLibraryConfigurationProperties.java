@@ -7,8 +7,15 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties("digital-notification-library")
-record NotificationLibraryConfigurationProperties(@NotNull GovUkNotify govukNotify) {
+public record NotificationLibraryConfigurationProperties(@NotNull GovUkNotify govukNotify,
+                                                         Notification notification) {
 
-  record GovUkNotify(@NotEmpty String apiKey, String baseUrl) {
+  public record GovUkNotify(@NotEmpty String apiKey, String baseUrl) {
+  }
+
+  public record Notification(Queued queued) {
+
+    public record Queued(Integer pollTimeSeconds, Integer bulkRetrievalLimit) {
+    }
   }
 }

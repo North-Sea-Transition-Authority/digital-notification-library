@@ -441,6 +441,43 @@ class NotificationLibraryClientTest {
   }
 
   @ParameterizedTest
+  @EnumSource(value = TemplateType.class, mode = EnumSource.Mode.EXCLUDE, names = "SMS")
+  void sendSms_whenTemplateTypeIsNotEmail_thenException(TemplateType nonSmsTemplateType) {
+
+    var nonEmailTemplate = TemplateTestUtil.builder()
+        .withType(nonSmsTemplateType)
+        .build();
+
+    var mergedTemplate = MergedTemplate.builder(nonEmailTemplate).merge();
+
+    var recipient = SmsRecipient.directPhoneNumber("0123456789");
+    var domainReference = DomainReference.from("id", "type");
+
+    // with log correlation ID
+    assertThatThrownBy(
+        () -> notificationLibraryClient.sendSms(
+            mergedTemplate,
+            recipient,
+            domainReference,
+            "log-correlation-id"
+        )
+    )
+        .isInstanceOf(DigitalNotificationLibraryException.class)
+        .hasMessage("Cannot send an sms with template of type %s".formatted(nonSmsTemplateType));
+
+    // without log correlation ID
+    assertThatThrownBy(
+        () -> notificationLibraryClient.sendSms(
+            mergedTemplate,
+            recipient,
+            domainReference
+        )
+    )
+        .isInstanceOf(DigitalNotificationLibraryException.class)
+        .hasMessage("Cannot send an sms with template of type %s".formatted(nonSmsTemplateType));
+  }
+
+  @ParameterizedTest
   @NullAndEmptySource
   void sendSms_whenRecipientNumberIsNullOrEmpty_thenException(String nullOrEmptyRecipientNumber) {
 
