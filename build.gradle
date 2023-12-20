@@ -30,8 +30,20 @@ java {
     withJavadocJar()
 }
 
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file('src/integrationTest/java')
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+    }
+}
+
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         url 'https://nexus.fivium.co.uk/repository/maven-releases/'
     }
@@ -42,18 +54,74 @@ repositories {
 
 dependencies {
 
+    // spring starter dependencies
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.data:spring-data-envers'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    // spring managed dependencies
     implementation 'org.flywaydb:flyway-core'
 
+    // external dependencies
+    implementation 'uk.gov.service.notify:notifications-java-client:4.1.0-RELEASE'
+
+    // test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // integration test dependencies
+    integrationTestRuntimeOnly 'org.postgresql:postgresql:42.6.0'
+
+    // the library under test
+    integrationTestImplementation 'uk.co.fivium:spring-boot-starter-digital-notification-library:integration-test'
+
+    // spring starter dependencies
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    integrationTestImplementation 'org.springframework.data:spring-data-envers'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-validation'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // spring managed dependencies
+    integrationTestImplementation 'org.flywaydb:flyway-core'
+
+    // external dependencies
+    integrationTestImplementation 'org.testcontainers:postgresql:1.19.1'
+    // looks to be an issue using org.wiremock:wiremock from spring boot 3.2.0 onwards
+    // as you get a ClassDefNotFound exception
+    integrationTestImplementation 'org.wiremock:wiremock-standalone:3.2.0'
+
 }
 
 tasks.named('test') {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
+}
+
+tasks.named('compileIntegrationTestJava') {
+    dependsOn(':compileJava')
+}
+
+tasks.register('integrationTest', Test) {
+    useJUnitPlatform()
+    group 'verification'
+    // Need to explicitly override the default classesDirs and classpath for a test task
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+    dependsOn(':jar')
+    dependsOn(publishStarterJarIntegrationTestPublicationToMavenLocal)
+}
+
+tasks.register('integrationTestReport', TestReport) {
+    destinationDirectory = file("${buildDir}/reports/integrationTests")
+    // Specify test result directory rather than task names so this task runs even if the tests fail
+    testResultDirs = [integrationTest.binResultsDir]
+
+    mustRunAfter(integrationTest)
+}
+
+tasks.named("processIntegrationTestResources") {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 sonarqube {
@@ -115,6 +183,12 @@ publishing {
     }
 
     publications {
+
+        starterJarIntegrationTest(MavenPublication) {
+            version = 'integration-test'
+            from components.java
+        }
+
         maven(MavenPublication) {
 
             versionMapping {

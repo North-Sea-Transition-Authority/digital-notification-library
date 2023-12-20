@@ -26,6 +26,29 @@ steps:
       - chmod +x gradlew
       - ./gradlew test
 
+  - name: integration-tests
+    image: quay.io/testcontainers/dind-drone-plugin
+    privileged: true
+    environment:
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+      CI_WORKSPACE: /drone/src
+      DOCKER_CONFIG_JSON:
+        from_secret: docker_config
+      DOCKER_CONFIG: /drone/dockerconfig
+    volumes:
+      - name: docker-cache-overlay2
+        path: /drone/docker/overlay2
+      - name: docker-cache-image
+        path: /drone/docker/image
+    settings:
+      storage_driver: overlay2 --dns=192.168.10.1
+      cmd:
+        - mkdir /drone/dockerconfig
+        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        - chmod +x gradlew
+        - ./gradlew integrationTest
+      build_image: eclipse-temurin:17-jdk
+
   - name: checkstyle
     image: eclipse-temurin:17-jdk
     environment:
