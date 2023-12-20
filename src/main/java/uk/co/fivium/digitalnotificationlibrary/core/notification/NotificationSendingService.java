@@ -164,8 +164,7 @@ class NotificationSendingService {
     var notificationProperties = libraryConfigurationProperties.notification();
 
     return notificationProperties != null && notificationProperties.queued() != null
-        ? Optional.ofNullable(notificationProperties.queued().bulkRetrievalLimit())
-            .orElse(DEFAULT_BULK_RETRIEVAL_LIMIT)
+        ? Optional.ofNullable(notificationProperties.queued().bulkRetrievalLimit()).orElse(DEFAULT_BULK_RETRIEVAL_LIMIT)
         : DEFAULT_BULK_RETRIEVAL_LIMIT;
   }
 }

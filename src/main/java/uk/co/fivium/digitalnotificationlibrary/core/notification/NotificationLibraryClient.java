@@ -3,6 +3,7 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.util.Set;
+import org.apache.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -41,15 +42,34 @@ public class NotificationLibraryClient {
   }
 
   /**
-   * Get the template associated to the provided template ID. If Notify is down a template will still be
-   * returned but the type, mail merge fields will be unknown.
+   * <p>Get the template associated to the provided template ID. If Notify is down a template will still be
+   * returned but the type, mail merge fields will not be populated. Method will throw an exception if GOV.UK Notify
+   * returns a 403 or 404 response.</p>
+   *
+   * <p>With throwing an exception for a 404 response from GOV.UK Notify there could be a risk that if GOV.UK remove the
+   * Notify service then all our request will return a 404 (has happened historically). The thinking here is that a 404
+   * response is more likely to be that developers have provided the wrong template ID in their configuration. We want
+   * to know about this immediately via an exception, so it can be resolved before the change is deployed out to
+   * environments. If GOV.UK Notify ever returns a 404 for their API not being around then all calls to this method
+   * will throw and exception and that is an accepted risk.</p>
+   *
    * @param notifyTemplateId The ID of the notify template to return
    * @return A template known to notify or an unconfirmed template if notify is down.
    */
   public Template getTemplate(String notifyTemplateId) {
-    return govukNotifyService.getTemplate(notifyTemplateId)
-        .map(Template::fromNotifyTemplate)
-        .orElse(Template.createUnconfirmedTemplate(notifyTemplateId));
+
+    var templateResponse = govukNotifyService.getTemplate(notifyTemplateId);
+
+    if (templateResponse.isSuccessfulResponse()) {
+      return Template.fromNotifyTemplate(templateResponse.successResponseObject());
+    } else if (isErrorStatusRelatedToConsumer(templateResponse.error())) {
+      throw new DigitalNotificationLibraryException(
+          "Failed with %s response from GOV.UK Notify when getting template with ID %s. GOV.UK Notify error: %s"
+              .formatted(templateResponse.error().httpStatus(), notifyTemplateId, templateResponse.error().message())
+      );
+    } else {
+      return Template.createUnconfirmedTemplate(notifyTemplateId);
+    }
   }
 
   /**
@@ -93,7 +113,7 @@ public class NotificationLibraryClient {
         mergedTemplate.getTemplate()
     );
 
-    return new EmailNotification(String.valueOf(notification.getId()), NotificationStatus.QUEUED);
+    return new EmailNotification(String.valueOf(notification.getId()));
   }
 
   /**
@@ -151,7 +171,7 @@ public class NotificationLibraryClient {
         mergedTemplate.getTemplate()
     );
 
-    return new SmsNotification(String.valueOf(notification.getId()), NotificationStatus.QUEUED);
+    return new SmsNotification(String.valueOf(notification.getId()));
   }
 
   /**
@@ -180,8 +200,8 @@ public class NotificationLibraryClient {
     notification.setStatus(NotificationStatus.QUEUED);
     notification.setType(notificationType);
     notification.setRecipient(recipient);
-    notification.setDomainReferenceId(domainReference.id());
-    notification.setDomainReferenceType(domainReference.type());
+    notification.setDomainReferenceId(domainReference.getId());
+    notification.setDomainReferenceType(domainReference.getType());
     notification.setMailMergeFields(mailMergeFields);
     notification.setNotifyTemplateId(template.notifyTemplateId());
     notification.setRequestedOn(clock.instant());
@@ -192,5 +212,12 @@ public class NotificationLibraryClient {
 
     notificationRepository.save(notification);
     return notification;
+  }
+
+  private boolean isErrorStatusRelatedToConsumer(Response.ErrorResponse response) {
+    return switch (response.httpStatus()) {
+      case HttpStatus.SC_FORBIDDEN, HttpStatus.SC_NOT_FOUND, HttpStatus.SC_BAD_REQUEST -> true;
+      default -> false;
+    };
   }
 }

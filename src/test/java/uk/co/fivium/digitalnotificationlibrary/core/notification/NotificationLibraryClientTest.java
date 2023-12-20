@@ -9,7 +9,6 @@ import static org.mockito.BDDMockito.then;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,15 +17,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.digitalnotificationlibrary.core.DigitalNotificationLibraryException;
-import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNotification;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
-import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsNotification;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsRecipient;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,7 +63,7 @@ class NotificationLibraryClientTest {
         .build();
 
     given(govukNotifyService.getTemplate(templateId.toString()))
-        .willReturn(Optional.of(knownTemplate));
+        .willReturn(Response.successfulResponse(knownTemplate));
 
     var resultingTemplate = notificationLibraryClient.getTemplate(templateId.toString());
 
@@ -84,13 +82,14 @@ class NotificationLibraryClientTest {
         );
   }
 
-  @Test
-  void getTemplate_whenNotifyReturnsEmptyOptional_thenUnconfirmedTemplateReturned() {
+  @ParameterizedTest
+  @ValueSource(ints = {500, 503})
+  void getTemplate_whenNotifyError_thenUnconfirmedTemplateReturned(int notifyHttpResponseStatusResultingInNoException) {
 
     var templateId = "unknown-template-id";
 
     given(govukNotifyService.getTemplate(templateId))
-        .willReturn(Optional.empty());
+        .willReturn(Response.failedResponse(notifyHttpResponseStatusResultingInNoException, "error-message"));
 
     var resultingTemplate = notificationLibraryClient.getTemplate(templateId);
 
@@ -107,6 +106,19 @@ class NotificationLibraryClientTest {
             Set.of(),
             Template.VerificationStatus.UNCONFIRMED_NOTIFY_TEMPLATE
         );
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {400, 403, 404})
+  void getTemplate_whenConsumerError_thenException(int notifyHttpResponseStatusResultingInException) {
+
+    var templateId = "unknown-template-id";
+
+    given(govukNotifyService.getTemplate(templateId))
+        .willReturn(Response.failedResponse(notifyHttpResponseStatusResultingInException, "error-message"));
+
+    assertThatThrownBy(() -> notificationLibraryClient.getTemplate(templateId))
+        .isInstanceOf(DigitalNotificationLibraryException.class);
   }
 
   @Test
@@ -294,7 +306,7 @@ class NotificationLibraryClientTest {
 
     var logCorrelationId = "log-correlation-id";
 
-    var resultingEmailNotification =  notificationLibraryClient.sendEmail(
+    notificationLibraryClient.sendEmail(
         mergedTemplate,
         recipient,
         domainReference,
@@ -323,8 +335,8 @@ class NotificationLibraryClientTest {
             NotificationStatus.QUEUED,
             NotificationType.EMAIL,
             recipient.getEmailAddress(),
-            domainReference.id(),
-            domainReference.type(),
+            domainReference.getId(),
+            domainReference.getType(),
             template.notifyTemplateId(),
             FIXED_INSTANT,
             logCorrelationId,
@@ -337,10 +349,6 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
-
-    assertThat(resultingEmailNotification)
-        .extracting(EmailNotification::status)
-        .isEqualTo(NotificationStatus.QUEUED);
   }
 
   @Test
@@ -360,7 +368,7 @@ class NotificationLibraryClientTest {
 
     var domainReference = DomainReference.from("domain-id", "domain-type");
 
-    var resultingEmailNotification =  notificationLibraryClient.sendEmail(
+    notificationLibraryClient.sendEmail(
         mergedTemplate,
         recipient,
         domainReference
@@ -389,8 +397,8 @@ class NotificationLibraryClientTest {
             NotificationStatus.QUEUED,
             NotificationType.EMAIL,
             recipient.getEmailAddress(),
-            domainReference.id(),
-            domainReference.type(),
+            domainReference.getId(),
+            domainReference.getType(),
             template.notifyTemplateId(),
             FIXED_INSTANT,
             null // not sent to notify so no status set
@@ -402,10 +410,6 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
-
-    assertThat(resultingEmailNotification)
-        .extracting(EmailNotification::status)
-        .isEqualTo(NotificationStatus.QUEUED);
   }
 
   @Test
@@ -593,7 +597,7 @@ class NotificationLibraryClientTest {
 
     var logCorrelationId = "log-correlation-id";
 
-    var resultingSmsNotification =  notificationLibraryClient.sendSms(
+    notificationLibraryClient.sendSms(
         mergedTemplate,
         recipient,
         domainReference,
@@ -622,8 +626,8 @@ class NotificationLibraryClientTest {
             NotificationStatus.QUEUED,
             NotificationType.SMS,
             recipient.getSmsRecipient(),
-            domainReference.id(),
-            domainReference.type(),
+            domainReference.getId(),
+            domainReference.getType(),
             template.notifyTemplateId(),
             FIXED_INSTANT,
             logCorrelationId,
@@ -636,10 +640,6 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
-
-    assertThat(resultingSmsNotification)
-        .extracting(SmsNotification::status)
-        .isEqualTo(NotificationStatus.QUEUED);
   }
 
   @Test
@@ -659,7 +659,7 @@ class NotificationLibraryClientTest {
 
     var domainReference = DomainReference.from("domain-id", "domain-type");
 
-    var resultingSmsNotification =  notificationLibraryClient.sendSms(
+    notificationLibraryClient.sendSms(
         mergedTemplate,
         recipient,
         domainReference
@@ -688,8 +688,8 @@ class NotificationLibraryClientTest {
             NotificationStatus.QUEUED,
             NotificationType.SMS,
             recipient.getSmsRecipient(),
-            domainReference.id(),
-            domainReference.type(),
+            domainReference.getId(),
+            domainReference.getType(),
             template.notifyTemplateId(),
             FIXED_INSTANT,
             null // not sent to notify so no status set
@@ -701,10 +701,6 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
-
-    assertThat(resultingSmsNotification)
-        .extracting(SmsNotification::status)
-        .isEqualTo(NotificationStatus.QUEUED);
   }
 
   private MergedTemplate givenMergedTemplate(TemplateType type) {

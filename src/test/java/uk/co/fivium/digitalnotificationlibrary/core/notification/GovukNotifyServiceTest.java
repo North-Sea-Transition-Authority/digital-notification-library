@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -153,6 +154,44 @@ class GovukNotifyServiceTest {
     assertThat(resultingNotifyEmailResponse.error())
         .extracting(Response.ErrorResponse::httpStatus, Response.ErrorResponse::message)
         .contains(expectedNotifyException.getHttpResult(), expectedNotifyException.getMessage());
+  }
+
+  @Test
+  void getTemplate_whenSuccessfulNotifyResponse_thenSuccessfulResponseReturned() throws NotificationClientException {
+
+    var templateId = UUID.randomUUID().toString();
+    var expectedNotifyTemplate = NotifyTemplateTestUtil.builder().build();
+
+    given(notifyClient.getTemplateById(templateId))
+        .willReturn(expectedNotifyTemplate);
+
+    var resultingTemplateResponse = notifyService.getTemplate(templateId);
+
+    assertThat(resultingTemplateResponse)
+        .extracting(Response::successResponseObject)
+        .isEqualTo(expectedNotifyTemplate);
+  }
+
+  @Test
+  void getTemplate_whenUnsuccessfulNotifyResponse_thenFailureResponseReturned() throws NotificationClientException {
+
+    var templateId = UUID.randomUUID().toString();
+    var expectedNotifyException = new NotificationClientException("exception-message");
+
+    given(notifyClient.getTemplateById(templateId))
+        .willThrow(expectedNotifyException);
+
+    var resultingTemplateResponse = notifyService.getTemplate(templateId);
+
+    assertThat(resultingTemplateResponse)
+        .extracting(
+            response -> response.error().httpStatus(),
+            response -> response.error().message()
+        )
+        .contains(
+            expectedNotifyException.getHttpResult(),
+            "exception-message"
+        );
   }
 
   private byte[] readFileData(String resourceName) throws IOException {
