@@ -18,34 +18,26 @@ steps:
         - ./gradle_cache
         - ./sonar_cache
 
-  - name: build-starter
-    image: quay.io/testcontainers/dind-drone-plugin
-    privileged: true
+  - name: tests
+    image: eclipse-temurin:17-jdk
     environment:
-      CI_WORKSPACE: /drone/src
       GRADLE_USER_HOME: /drone/src/gradle_cache
-      DOCKER_CONFIG_JSON:
-        from_secret: docker_config
-      DOCKER_CONFIG: /drone/dockerconfig # testcontainers override location for Docker config JSON
-    volumes:
-      - name: docker-cache-overlay2
-        path: /drone/docker/overlay2
-      - name: docker-cache-image
-        path: /drone/docker/image
-    settings:
-      storage_driver: overlay2 --dns=192.168.10.1
-      cmd:
-        - mkdir /drone/dockerconfig
-        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
-        - chmod +x gradlew
-        - ./gradlew :spring-boot-starter:checkstyleMain :spring-boot-starter:test --continue --parallel --max-workers=3
-      build_image: repo1.dev.fivium.local:5000/docker-compose-java17
+    commands:
+      - chmod +x gradlew
+      - ./gradlew test
+
+  - name: checkstyle
+    image: eclipse-temurin:17-jdk
+    environment:
+      GRADLE_USER_HOME: /drone/src/gradle_cache
+    commands:
+      - ./gradlew checkstyleMain
 
   - name: sync-reports
     image: alpine:3
     commands:
       - mkdir -p /var/webfiles/${DRONE_BUILD_NUMBER}
-      - cp -r spring-boot-starter/build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
+      - cp -r build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
     volumes:
       - name: webfiles
         path: /var/webfiles
@@ -70,35 +62,36 @@ steps:
         - main
         - drone/*
 
-  - name: publish-maven-publications-snapshot
+  - name: publish-snapshot
     image: eclipse-temurin:17-jdk
     environment:
+      GRADLE_USER_HOME: /drone/src/gradle_cache
       NEXUS_USERNAME: jenkins
       NEXUS_PASSWORD:
         from_secret: nexus_password
     commands:
-      - export MAVEN_PUBLICATIONS_VERSION=$(echo ${DRONE_BRANCH} | sed 's/feature\\\///g' | sed 's/\\\//-/g')-SNAPSHOT
-      - echo $MAVEN_PUBLICATIONS_VERSION
-      - ./gradlew :springBootStarter:publishSpringBootStarterPublicationToSnapshotsRepository
+      - export MAVEN_PUBLICATION_VERSION=$(echo $DRONE_BRANCH | sed 's/feature\\\///g' | sed 's/\\\//-/g')-SNAPSHOT
+      - echo $MAVEN_PUBLICATION_VERSION
+      - ./gradlew publishMavenPublicationToSnapshotsRepository
     when:
       branch:
         - develop
         - feature/**
-      event:
-        - push
+      event: push
 
-  - name: publish-maven-publications-release
+  - name: publish-release
     image: eclipse-temurin:17-jdk
     environment:
+      GRADLE_USER_HOME: /drone/src/gradle_cache
       NEXUS_USERNAME: jenkins
       NEXUS_PASSWORD:
         from_secret: nexus_password
     commands:
-      - export MAVEN_PUBLICATIONS_VERSION=${DRONE_TAG}
-      - ./gradlew :springBootStarter:publishSpringBootStarterPublicationToReleasesRepository
+      - export MAVEN_PUBLICATION_VERSION=$(echo $DRONE_TAG | cut -d'/' -f2)
+      - echo $MAVEN_PUBLICATION_VERSION
+      - ./gradlew publishMavenPublicationToReleasesRepository
     when:
-      event:
-        - tag
+      event: tag
 
   - name: rebuild-cache
     image: drillster/drone-volume-cache
@@ -126,7 +119,7 @@ steps:
     settings:
       channel: digital-shared-services
       icon_url: https://cdn.worldvectorlogo.com/logos/drone.svg
-      template: "<!channel> *File Upload Library: ${DRONE_TAG}* has been released by ${DRONE_COMMIT_AUTHOR_NAME}\nRelease notes: https://github.com/Fivium/digital-notification-library/releases/tag/${DRONE_TAG}"
+      template: "<!channel> *Digital Notification Library: ${DRONE_TAG}* has been released by ${DRONE_COMMIT_AUTHOR_NAME}\nRelease notes: https://github.com/Fivium/digital-notification-library/releases/tag/${DRONE_TAG}"
       username: drone
       webhook: https://hooks.slack.com/services/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
     when:
@@ -206,7 +199,7 @@ steps:
       GRADLE_USER_HOME: /drone/src/gradle_cache
     commands:
       - chmod +x gradlew
-      - ./gradlew :spring-boot-starter:test
+      - ./gradlew test
 
   # This is in the PR pipeline as only PR events get the necessary information for proper github integration
   - name: code-analysis
@@ -219,7 +212,7 @@ steps:
       SONAR_USER_HOME: /drone/src/sonar_cache
     commands:
       - chmod +x gradlew
-      - ./gradlew :spring-boot-starter:sonarqube -info
+      - ./gradlew sonarqube -info
 
   - name: rebuild-cache
     image: drillster/drone-volume-cache

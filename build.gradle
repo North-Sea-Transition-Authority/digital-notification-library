@@ -1,30 +1,127 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
 plugins {
-    id("java")
-    id("org.springframework.boot") version "3.1.2" apply false
-    id("io.spring.dependency-management") version "1.1.2" apply false
+    id 'java-library'
+    // This plugin isn't applied as this isn't an executable app. It is still required as a dependency, see the below
+    // comment on the dependencyManagement block for why.
+    id 'org.springframework.boot' version '3.2.0' apply false
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'checkstyle'
+    id 'jacoco'
+    id 'org.sonarqube' version '4.4.1.3373'
+    id 'maven-publish'
 }
 
-allprojects {
-    apply plugin: "java"
-
-    group = "uk.co.fivium"
-    version = "0.0.1-SNAPSHOT"
-
-    sourceCompatibility = 17
+// This starter uses Spring Boot’s dependency management in isolation without applying Spring Boot’s plugin as this
+// isn't an executable app. Instead, we use the Spring Boot plugin dependency to find the correct
+// spring-boot-dependencies bom to import. See https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#managing-dependencies.dependency-management-plugin.using-in-isolation
+dependencyManagement {
+    imports {
+        mavenBom SpringBootPlugin.BOM_COORDINATES
+    }
 }
 
-subprojects {
-    apply plugin: "checkstyle"
-    apply plugin: "io.spring.dependency-management"
+group = 'uk.co.fivium'
+version = '0.0.1-SNAPSHOT'
 
+java {
+    sourceCompatibility = '17'
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://nexus.fivium.co.uk/repository/maven-releases/'
+    }
+    maven {
+        url 'https://nexus.fivium.co.uk/repository/maven-snapshots/'
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+sonarqube {
+    properties {
+        property 'sonar.coverage.jacoco.xmlReportPaths', '$buildDir/reports/jacoco/test/jacocoTestReport.xml'
+        property 'sonar.projectKey', 'Fivium_digital-notification-library'
+        property 'sonar.organization', 'fivium-gh'
+        property 'sonar.host.url', 'https://sonarcloud.io'
+        property 'sonar.token', System.getenv('SONARCLOUD_TOKEN')
+
+        if (System.getenv('DRONE_PULL_REQUEST') != null) {
+            property 'sonar.pullrequest.key', System.getenv('DRONE_PULL_REQUEST')
+            property 'sonar.pullrequest.base', System.getenv('DRONE_TARGET_BRANCH')
+            property 'sonar.pullrequest.branch', System.getenv('DRONE_SOURCE_BRANCH')
+            property 'sonar.pullrequest.provider', 'github'
+            property 'sonar.pullrequest.github.repository', 'digital-notification-library'
+            property 'sonar.pullrequest.github.endpoint', 'https://api.github.com/'
+        } else {
+            property 'sonar.branch.name', System.getenv('DRONE_BRANCH')
+            if (System.getenv('DRONE_BRANCH') != 'develop') {
+                property 'sonar.branch.target', 'develop'
+            }
+        }
+    }
+}
+
+checkstyle {
+    config = rootProject.resources.text.fromFile('devtools/checkstyle.xml')
+    toolVersion '9.3'
+    ignoreFailures = false
+    maxWarnings = 0
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}
+
+publishing {
     repositories {
-        mavenCentral()
+        maven {
+            name = 'snapshots'
+            url = 'https://nexus.fivium.co.uk/repository/maven-snapshots'
+            credentials {
+                username = System.getenv('NEXUS_USERNAME')
+                password = System.getenv('NEXUS_PASSWORD')
+            }
+        }
+
+        maven {
+            name = 'releases'
+            url = 'https://nexus.fivium.co.uk/repository/maven-releases'
+            credentials {
+                username = System.getenv('NEXUS_USERNAME')
+                password = System.getenv('NEXUS_PASSWORD')
+            }
+        }
     }
 
-    checkstyle {
-        config = rootProject.resources.text.fromFile('devtools/checkstyle.xml')
-        toolVersion '9.3'
-        ignoreFailures = false
-        maxWarnings = 0
+    publications {
+        maven(MavenPublication) {
+
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+
+            version = System.getenv('MAVEN_PUBLICATION_VERSION') ?: version
+            from components.java
+        }
     }
 }
