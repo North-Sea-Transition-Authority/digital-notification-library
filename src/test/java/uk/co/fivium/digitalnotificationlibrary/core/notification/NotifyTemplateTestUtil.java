@@ -9,6 +9,10 @@ import uk.gov.service.notify.Template;
 
 class NotifyTemplateTestUtil {
 
+  private NotifyTemplateTestUtil() {
+    throw new IllegalStateException("This is a utility class and should not be instantiated");
+  }
+
   static Builder builder() {
     return new Builder();
   }

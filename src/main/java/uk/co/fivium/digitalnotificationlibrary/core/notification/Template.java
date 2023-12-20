@@ -29,6 +29,27 @@ public record Template(
     UNCONFIRMED_NOTIFY_TEMPLATE
   }
 
+  /**
+   * Add a mail merge field to the template.
+   * @param key The key of the mail merge field
+   * @param value The value of the mail merge field
+   * @return A merged template builder
+   */
+  public MergedTemplate.MergedTemplateBuilder withMailMergeField(String key, String value) {
+    return new MergedTemplate.MergedTemplateBuilder(this)
+        .withMailMergeField(key, value);
+  }
+
+  /**
+   * Add a collection of mail merge fields to the template.
+   * @param mailMergeFields The mail merge fields to add to the template
+   * @return A merged template builder
+   */
+  public MergedTemplate.MergedTemplateBuilder withMailMergeFields(Set<MailMergeField> mailMergeFields) {
+    return new MergedTemplate.MergedTemplateBuilder(this)
+        .withMailMergeFields(mailMergeFields);
+  }
+
   static Template createUnconfirmedTemplate(String notifyTemplateId) {
     return new Template(
         notifyTemplateId,

@@ -1,8 +1,10 @@
 package uk.co.fivium.digitalnotificationlibrary.configuration;
 
+import java.time.Clock;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -26,5 +28,11 @@ class NotificationLibraryAutoConfiguration {
         notificationLibraryProperties.govukNotify().apiKey(),
         Optional.ofNullable(notificationLibraryProperties.govukNotify().baseUrl()).orElse(NOTIFY_BASE_URL)
     );
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  Clock clock() {
+    return Clock.systemDefaultZone();
   }
 }

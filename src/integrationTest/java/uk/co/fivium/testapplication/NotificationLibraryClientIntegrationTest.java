@@ -11,8 +11,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,9 +24,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import uk.co.fivium.digitalnotificationlibrary.core.DigitalNotificationLibraryException;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.DomainReference;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplate;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLibraryClient;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationStatus;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.Template;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.TemplateType;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNotification;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsNotification;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsRecipient;
 
 @IntegrationTest
 @WireMockTest
@@ -136,5 +146,82 @@ class NotificationLibraryClientIntegrationTest {
 
     assertThatThrownBy(() -> notificationLibraryClient.getTemplate(templateId))
         .isInstanceOf(DigitalNotificationLibraryException.class);
+  }
+
+  @Test
+  void sendEmail_verifyQueued() {
+
+    var expectedTemplate = givenNotifyReturnsATemplateOfType(TemplateType.EMAIL);
+
+    var mergedTemplate = MergedTemplate.builder(expectedTemplate)
+        .withMailMergeField("field-1", "value-1")
+        .withMailMergeField("field-2", "value-2")
+        .merge();
+
+    var emailRecipient = EmailRecipient.directEmailAddress("someone@example.com");
+
+    var domainReference = DomainReference.from("123", "APPLICATION");
+
+    var resultingEmailNotification = notificationLibraryClient
+        .sendEmail(mergedTemplate, emailRecipient, domainReference, "log-correlation-id");
+
+    assertThat(resultingEmailNotification)
+        .extracting(EmailNotification::id, EmailNotification::status)
+        .containsExactly(resultingEmailNotification.id(), NotificationStatus.QUEUED);
+  }
+
+  @Test
+  void sendSms_verifyQueued() {
+
+    var expectedTemplate = givenNotifyReturnsATemplateOfType(TemplateType.SMS);
+
+    var mergedTemplate = MergedTemplate.builder(expectedTemplate)
+        .withMailMergeField("field-1", "value-1")
+        .withMailMergeField("field-2", "value-2")
+        .merge();
+
+    var smsRecipient = SmsRecipient.directPhoneNumber("0123456789");
+
+    var domainReference = DomainReference.from("123", "APPLICATION");
+
+    var resultingSmsNotification = notificationLibraryClient
+        .sendSms(mergedTemplate, smsRecipient, domainReference, "log-correlation-id");
+
+    assertThat(resultingSmsNotification)
+        .extracting(SmsNotification::id, SmsNotification::status)
+        .containsExactly(resultingSmsNotification.id(), NotificationStatus.QUEUED);
+  }
+
+  private Template givenNotifyReturnsATemplateOfType(TemplateType type) {
+
+    var resultingNotifyTemplate = NotifyTemplateTestUtil.builder()
+        .withType(type)
+        .buildAsJsonObject();
+
+    stubFor(get(urlEqualTo("/v2/template/%s".formatted(UUID.randomUUID())))
+        .willReturn(ok()
+            .withHeader("Content-Type", "application/json")
+            .withBody(String.valueOf(resultingNotifyTemplate))
+        ));
+
+    try {
+
+      var notifyTemplateId = (String) resultingNotifyTemplate.get("id");
+
+      Set<String> mailMergeFieldNames = new HashSet<>(
+          ((Map<String, Object>) resultingNotifyTemplate.get("personalisation"))
+          .keySet()
+      );
+
+      return new Template(
+          notifyTemplateId,
+          type,
+          mailMergeFieldNames,
+          Template.VerificationStatus.CONFIRMED_NOTIFY_TEMPLATE
+      );
+
+    } catch (JSONException exception) {
+      throw new IllegalStateException(exception);
+    }
   }
 }
