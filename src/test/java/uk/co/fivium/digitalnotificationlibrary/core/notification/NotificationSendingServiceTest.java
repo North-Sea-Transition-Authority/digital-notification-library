@@ -99,7 +99,7 @@ class NotificationSendingServiceTest {
   void sendQueuedNotificationToNotify_whenNoNotificationPropertySet_thenVerifyDefaultUsed() {
 
     var libraryConfigurationProperties = new NotificationLibraryConfigurationProperties(
-        new NotificationLibraryConfigurationProperties.GovUkNotify("key", "url"),
+        new NotificationLibraryConfigurationProperties.GovUkNotify("key"),
         null
     );
 
@@ -124,7 +124,7 @@ class NotificationSendingServiceTest {
   void sendQueuedNotificationToNotify_whenNoQueuedPropertySet_thenVerifyDefaultUsed() {
 
     var libraryConfigurationProperties = new NotificationLibraryConfigurationProperties(
-        new NotificationLibraryConfigurationProperties.GovUkNotify("key", "url"),
+        new NotificationLibraryConfigurationProperties.GovUkNotify("key"),
         new NotificationLibraryConfigurationProperties.Notification(null)
     );
 
@@ -433,7 +433,7 @@ class NotificationSendingServiceTest {
 
       NotificationLibraryConfigurationProperties build() {
         return new NotificationLibraryConfigurationProperties(
-            new NotificationLibraryConfigurationProperties.GovUkNotify("api-key", "base-url"),
+            new NotificationLibraryConfigurationProperties.GovUkNotify("api-key"),
             new NotificationLibraryConfigurationProperties.Notification(
                 new NotificationLibraryConfigurationProperties.Notification.Queued(1, queuedNotificationBulkRetrievalLimit)
             )

@@ -35,6 +35,8 @@ steps:
       DOCKER_CONFIG_JSON:
         from_secret: docker_config
       DOCKER_CONFIG: /drone/dockerconfig
+      INTEGRATION_TEST_GOVUK_NOTIFY_API_KEY:
+        from_secret: govuk_notify_integration_test_api_key
     volumes:
       - name: docker-cache-overlay2
         path: /drone/docker/overlay2
@@ -275,3 +277,10 @@ data: 3YdO3QScFVxr1EHSBu768DAhDdyDI04JS6vPe7gWYY20WP9Bh/goq4pvDpBhqFsyBbVFLJ3yLh
 kind: secret
 name: nexus_password
 data: 1RlwKOivHoL91g3V0JvAQZKXZ4JCutNNdxClYJIapoYNP+YdhA==
+
+---
+
+# https://tpm.fivium.co.uk/index.php/pwd/view/2246
+kind: secret
+name: govuk_notify_integration_test_api_key
+data: GcT4MvwGPiTmvN7i9UQ9F6DPFZMLD5fsOITYdabptayBdvKe7SJk9/Hl6DZ7zBztp167b/6j9b3FUQrnTRD/Zzy4ITS9P66h0gOlaxmCUKYN+4+dTLOSmCAXDbvUBD++AY4BCWv74I0Xg0IokB333lJkyvSWELgVa13dd1ggBrtU6HLVN7OkIxGkcqzfwpTDg9+5

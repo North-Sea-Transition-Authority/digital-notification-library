@@ -10,7 +10,7 @@ import org.springframework.validation.annotation.Validated;
 public record NotificationLibraryConfigurationProperties(@NotNull GovUkNotify govukNotify,
                                                          Notification notification) {
 
-  public record GovUkNotify(@NotEmpty String apiKey, String baseUrl) {
+  public record GovUkNotify(@NotEmpty String apiKey) {
   }
 
   public record Notification(Queued queued) {
