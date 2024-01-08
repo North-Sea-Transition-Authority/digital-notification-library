@@ -62,10 +62,12 @@ dependencies {
 
     // spring managed dependencies
     implementation 'org.flywaydb:flyway-core'
+    implementation 'org.apache.commons:commons-lang3'
 
     // external dependencies
     implementation 'uk.gov.service.notify:notifications-java-client:4.1.0-RELEASE'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
+    implementation 'org.apache.commons:commons-collections4:4.4'
 
     // test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

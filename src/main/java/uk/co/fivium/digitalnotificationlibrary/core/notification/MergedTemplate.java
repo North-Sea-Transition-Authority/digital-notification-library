@@ -1,9 +1,11 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
+import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Class representing a template with the mail merge fields to include.
@@ -51,7 +53,7 @@ public class MergedTemplate {
 
     private final Template template;
 
-    private final Set<MailMergeField> mailMergeFields = new HashSet<>();
+    private final Map<String, Object> mailMergeFields = new HashMap<>();
 
     MergedTemplateBuilder(Template template) {
       this.template = template;
@@ -65,8 +67,8 @@ public class MergedTemplate {
      */
     public MergedTemplateBuilder withMailMergeField(String name, Object value) {
 
-      if (StringUtils.hasText(name)) {
-        mailMergeFields.add(new MailMergeField(name, value));
+      if (StringUtils.isNotBlank(name)) {
+        mailMergeFields.put(name, value);
       } else {
         throw new IllegalArgumentException("A non empty mail merge field name must be provided");
       }
@@ -80,7 +82,7 @@ public class MergedTemplate {
      * @return The builder
      */
     public MergedTemplateBuilder withMailMergeFields(Set<MailMergeField> mailMergeFields) {
-      if (!CollectionUtils.isEmpty(mailMergeFields)) {
+      if (CollectionUtils.isNotEmpty(mailMergeFields)) {
         mailMergeFields.forEach(mailMergeField ->
             withMailMergeField(mailMergeField.name(), mailMergeField.value())
         );
@@ -93,7 +95,14 @@ public class MergedTemplate {
      * @return an instantiated merged template
      */
     public MergedTemplate merge() {
-      return new MergedTemplate(template, mailMergeFields);
+
+      Set<MailMergeField> mailMergeFieldSet = mailMergeFields
+          .entrySet()
+          .stream()
+          .map(field -> new MailMergeField(field.getKey(), field.getValue()))
+          .collect(Collectors.toSet());
+
+      return new MergedTemplate(template, mailMergeFieldSet);
     }
   }
 }

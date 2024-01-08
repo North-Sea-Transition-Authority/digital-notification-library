@@ -3,10 +3,10 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import uk.co.fivium.digitalnotificationlibrary.core.DigitalNotificationLibraryException;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNotification;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
@@ -96,7 +96,7 @@ public class NotificationLibraryClient {
       );
     }
 
-    if (recipient == null || !StringUtils.hasText(recipient.getEmailAddress())) {
+    if (recipient == null || StringUtils.isBlank(recipient.getEmailAddress())) {
       throw new DigitalNotificationLibraryException("EmailRecipient must not be null or empty");
     }
 
@@ -154,7 +154,7 @@ public class NotificationLibraryClient {
       );
     }
 
-    if (recipient == null || !StringUtils.hasText(recipient.getSmsRecipient())) {
+    if (recipient == null || StringUtils.isBlank(recipient.getSmsRecipient())) {
       throw new DigitalNotificationLibraryException("SmsRecipient must not be null or empty");
     }
 
@@ -206,7 +206,7 @@ public class NotificationLibraryClient {
     notification.setNotifyTemplateId(template.notifyTemplateId());
     notification.setRequestedOn(clock.instant());
 
-    if (StringUtils.hasText(logCorrelationId)) {
+    if (StringUtils.isNotBlank(logCorrelationId)) {
       notification.setLogCorrelationId(logCorrelationId);
     }
 
