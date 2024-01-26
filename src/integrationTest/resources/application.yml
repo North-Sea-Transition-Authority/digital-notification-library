@@ -21,3 +21,4 @@ digital-notification-library:
     queued:
       bulk-retrieval-limit: 2
       poll-time-seconds: 2
+  mode: production

@@ -15,8 +15,10 @@ class NotificationLibraryAutoConfiguration {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NotificationLibraryAutoConfiguration.class);
 
-  NotificationLibraryAutoConfiguration() {
-    LOGGER.info("Digital notification library Spring Boot Starter has been enabled");
+  NotificationLibraryAutoConfiguration(NotificationLibraryConfigurationProperties libraryProperties) {
+    LOGGER.info(
+        "Digital notification library Spring Boot Starter has been enabled using {} mode", libraryProperties.mode()
+    );
   }
 
   @Bean

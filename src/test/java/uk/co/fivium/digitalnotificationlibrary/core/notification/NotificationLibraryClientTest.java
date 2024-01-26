@@ -3,6 +3,8 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -20,9 +22,11 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
+import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationPropertiesTestUtil;
+import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationMode;
 import uk.co.fivium.digitalnotificationlibrary.core.DigitalNotificationLibraryException;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsRecipient;
@@ -35,7 +39,7 @@ class NotificationLibraryClientTest {
   private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneId.systemDefault());
 
   @Mock
-  private GovukNotifyService govukNotifyService;
+  private TemplateService templateService;
 
   @Mock
   private NotificationLibraryNotificationRepository notificationRepository;
@@ -43,12 +47,19 @@ class NotificationLibraryClientTest {
   @Captor
   private ArgumentCaptor<Notification> notificationCaptor;
 
-  @InjectMocks
+  private NotificationLibraryConfigurationProperties libraryConfigurationProperties;
+
   private NotificationLibraryClient notificationLibraryClient;
 
   @BeforeEach
   void setup() {
-    notificationLibraryClient = new NotificationLibraryClient(govukNotifyService, notificationRepository, FIXED_CLOCK);
+    libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder().build();
+    notificationLibraryClient = new NotificationLibraryClient(
+        notificationRepository,
+        templateService,
+        FIXED_CLOCK,
+        libraryConfigurationProperties
+    );
   }
 
   @Test
@@ -62,7 +73,7 @@ class NotificationLibraryClientTest {
         .withPersonalisation("field", "value")
         .build();
 
-    given(govukNotifyService.getTemplate(templateId.toString()))
+    given(templateService.getTemplate(templateId.toString()))
         .willReturn(Response.successfulResponse(knownTemplate));
 
     var resultingTemplate = notificationLibraryClient.getTemplate(templateId.toString());
@@ -88,7 +99,7 @@ class NotificationLibraryClientTest {
 
     var templateId = "unknown-template-id";
 
-    given(govukNotifyService.getTemplate(templateId))
+    given(templateService.getTemplate(templateId))
         .willReturn(Response.failedResponse(notifyHttpResponseStatusResultingInNoException, "error-message"));
 
     var resultingTemplate = notificationLibraryClient.getTemplate(templateId);
@@ -114,7 +125,7 @@ class NotificationLibraryClientTest {
 
     var templateId = "unknown-template-id";
 
-    given(govukNotifyService.getTemplate(templateId))
+    given(templateService.getTemplate(templateId))
         .willReturn(Response.failedResponse(notifyHttpResponseStatusResultingInException, "error-message"));
 
     assertThatThrownBy(() -> notificationLibraryClient.getTemplate(templateId))
@@ -701,6 +712,76 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
+  }
+
+  @Test
+  void isRunningTestMode_whenTestMode_thenTrue() {
+
+    libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+        .withMode(NotificationMode.TEST)
+        .build();
+
+    notificationLibraryClient = new NotificationLibraryClient(
+        notificationRepository,
+        templateService,
+        FIXED_CLOCK,
+        libraryConfigurationProperties
+    );
+
+    assertTrue(notificationLibraryClient.isRunningTestMode());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = NotificationMode.class, mode = EnumSource.Mode.EXCLUDE, names = "TEST")
+  void isRunningTestMode_whenNotTestMode_thenFalse(NotificationMode nonTestMode) {
+
+    libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+        .withMode(nonTestMode)
+        .build();
+
+    notificationLibraryClient = new NotificationLibraryClient(
+        notificationRepository,
+        templateService,
+        FIXED_CLOCK,
+        libraryConfigurationProperties
+    );
+
+    assertFalse(notificationLibraryClient.isRunningTestMode());
+  }
+
+  @Test
+  void isRunningProductionMode_whenProductionMode_thenTrue() {
+
+    libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+        .withMode(NotificationMode.PRODUCTION)
+        .build();
+
+    notificationLibraryClient = new NotificationLibraryClient(
+        notificationRepository,
+        templateService,
+        FIXED_CLOCK,
+        libraryConfigurationProperties
+    );
+
+    assertTrue(notificationLibraryClient.isRunningProductionMode());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = NotificationMode.class, mode = EnumSource.Mode.EXCLUDE, names = "PRODUCTION")
+  void isRunningProductionMode_whenNotProductionMode_thenFalse(NotificationMode nonProductionMode) {
+
+    libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+        .withMode(nonProductionMode)
+        .build();
+
+    notificationLibraryClient = new NotificationLibraryClient(
+        notificationRepository,
+        templateService,
+        FIXED_CLOCK,
+        libraryConfigurationProperties
+    );
+
+    assertFalse(notificationLibraryClient.isRunningProductionMode());
   }
 
   private MergedTemplate givenMergedTemplate(TemplateType type) {

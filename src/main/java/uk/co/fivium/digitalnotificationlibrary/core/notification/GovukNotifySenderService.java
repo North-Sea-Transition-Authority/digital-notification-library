@@ -9,27 +9,22 @@ import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 import uk.gov.service.notify.SendSmsResponse;
-import uk.gov.service.notify.Template;
 
 @Service
-class GovukNotifyService {
+class GovukNotifySenderService {
 
   private final NotificationClient notifyClient;
 
   @Autowired
-  GovukNotifyService(NotificationClient notifyClient) {
+  GovukNotifySenderService(NotificationClient notifyClient) {
     this.notifyClient = notifyClient;
   }
 
-  Response<Template> getTemplate(String templateId) {
-    try {
-      return Response.successfulResponse(notifyClient.getTemplateById(templateId));
-    } catch (NotificationClientException exception) {
-      return Response.failedResponse(exception.getHttpResult(), exception.getMessage());
-    }
+  Response<SendEmailResponse> sendEmail(Notification notification) {
+    return sendEmail(notification, notification.getRecipient());
   }
 
-  Response<SendEmailResponse> sendEmail(Notification notification) {
+  Response<SendEmailResponse> sendEmail(Notification notification, String recipient) {
 
     if (!NotificationType.EMAIL.equals(notification.getType())) {
       throw new IllegalStateException(
@@ -37,17 +32,17 @@ class GovukNotifyService {
       );
     }
 
-    var mailMergeFields = convertMailMergedFieldsToNotifyFormat(notification.getMailMergeFields());
+    Map<String, Object> mailMergeFields = toNotifyMailMergeFormat(notification.getMailMergeFields());
 
     try {
-      var emailResponse = notifyClient.sendEmail(
+      var notifyResponse = notifyClient.sendEmail(
           notification.getNotifyTemplateId(),
-          notification.getRecipient(),
+          recipient,
           mailMergeFields,
           notification.getLogCorrelationId()
       );
 
-      return Response.successfulResponse(emailResponse);
+      return Response.successfulResponse(notifyResponse);
 
     } catch (NotificationClientException exception) {
       return Response.failedResponse(exception.getHttpResult(), exception.getMessage());
@@ -55,6 +50,10 @@ class GovukNotifyService {
   }
 
   Response<SendSmsResponse> sendSms(Notification notification) {
+    return sendSms(notification, notification.getRecipient());
+  }
+
+  Response<SendSmsResponse> sendSms(Notification notification, String recipient) {
 
     if (!NotificationType.SMS.equals(notification.getType())) {
       throw new IllegalStateException(
@@ -62,24 +61,24 @@ class GovukNotifyService {
       );
     }
 
-    var mailMergeFields = convertMailMergedFieldsToNotifyFormat(notification.getMailMergeFields());
+    Map<String, Object> mailMergeFields = toNotifyMailMergeFormat(notification.getMailMergeFields());
 
     try {
-      var emailResponse = notifyClient.sendSms(
+      var notifyResponse = notifyClient.sendSms(
           notification.getNotifyTemplateId(),
-          notification.getRecipient(),
+          recipient,
           mailMergeFields,
           notification.getLogCorrelationId()
       );
 
-      return Response.successfulResponse(emailResponse);
+      return Response.successfulResponse(notifyResponse);
 
     } catch (NotificationClientException exception) {
       return Response.failedResponse(exception.getHttpResult(), exception.getMessage());
     }
   }
 
-  private Map<String, Object> convertMailMergedFieldsToNotifyFormat(Set<MailMergeField> mailMergeFields) {
+  private Map<String, Object> toNotifyMailMergeFormat(Set<MailMergeField> mailMergeFields) {
     return mailMergeFields
         .stream()
         .collect(Collectors.toMap(MailMergeField::name, MailMergeField::value));

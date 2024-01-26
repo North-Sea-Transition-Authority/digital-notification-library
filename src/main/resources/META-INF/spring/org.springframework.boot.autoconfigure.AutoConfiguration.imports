@@ -1,2 +1,3 @@
 uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryAutoConfiguration
 uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryEntityAutoConfiguration
+uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationAutoConfiguration

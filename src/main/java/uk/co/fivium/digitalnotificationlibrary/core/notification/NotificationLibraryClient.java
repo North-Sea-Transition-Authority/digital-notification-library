@@ -7,6 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
+import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationMode;
 import uk.co.fivium.digitalnotificationlibrary.core.DigitalNotificationLibraryException;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNotification;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
@@ -19,26 +21,31 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsRecipien
 @Service
 public class NotificationLibraryClient {
 
-  private final GovukNotifyService govukNotifyService;
-
   private final NotificationLibraryNotificationRepository notificationRepository;
 
+  private final TemplateService templateService;
+
   private final Clock clock;
+
+  private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
   /**
    * Create an instance of NotificationLibraryClient.
    *
-   * @param govukNotifyService The Gov UK notify service.
    * @param notificationRepository The notification repository
+   * @param templateService The service for retrieving templates
    * @param clock The clock instance
+   * @param libraryConfigurationProperties The configuration properties for the library
    */
   @Autowired
-  public NotificationLibraryClient(GovukNotifyService govukNotifyService,
-                                   NotificationLibraryNotificationRepository notificationRepository,
-                                   Clock clock) {
-    this.govukNotifyService = govukNotifyService;
+  public NotificationLibraryClient(NotificationLibraryNotificationRepository notificationRepository,
+                                   TemplateService templateService,
+                                   Clock clock,
+                                   NotificationLibraryConfigurationProperties libraryConfigurationProperties) {
     this.notificationRepository = notificationRepository;
+    this.templateService = templateService;
     this.clock = clock;
+    this.libraryConfigurationProperties = libraryConfigurationProperties;
   }
 
   /**
@@ -58,7 +65,7 @@ public class NotificationLibraryClient {
    */
   public Template getTemplate(String notifyTemplateId) {
 
-    var templateResponse = govukNotifyService.getTemplate(notifyTemplateId);
+    var templateResponse = templateService.getTemplate(notifyTemplateId);
 
     if (templateResponse.isSuccessfulResponse()) {
       return Template.fromNotifyTemplate(templateResponse.successResponseObject());
@@ -188,6 +195,21 @@ public class NotificationLibraryClient {
     return sendSms(mergedTemplate, recipient, domainReference, null);
   }
 
+  /**
+   * Determines if the library is running in test mode.
+   * @return returns true if running in test mode, false otherwise
+   */
+  public boolean isRunningTestMode() {
+    return NotificationMode.TEST.equals(libraryConfigurationProperties.mode());
+  }
+
+  /**
+   * Determines if the library is running in production mode.
+   * @return returns true if running in production mode, false otherwise
+   */
+  public boolean isRunningProductionMode() {
+    return NotificationMode.PRODUCTION.equals(libraryConfigurationProperties.mode());
+  }
 
   private Notification queueNotification(NotificationType notificationType,
                                          String recipient,

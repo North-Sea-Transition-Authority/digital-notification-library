@@ -30,18 +30,18 @@ class NotificationSendingService {
 
   private final NotificationLibraryNotificationRepository notificationRepository;
 
-  private final GovukNotifyService govukNotifyService;
+  private final GovukNotifySender govukNotifySender;
 
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
   @Autowired
   NotificationSendingService(PlatformTransactionManager transactionManager,
                              NotificationLibraryNotificationRepository notificationRepository,
-                             GovukNotifyService govukNotifyService,
+                             GovukNotifySender govukNotifySender,
                              NotificationLibraryConfigurationProperties libraryConfigurationProperties) {
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.notificationRepository = notificationRepository;
-    this.govukNotifyService = govukNotifyService;
+    this.govukNotifySender = govukNotifySender;
     this.libraryConfigurationProperties = libraryConfigurationProperties;
   }
 
@@ -76,7 +76,7 @@ class NotificationSendingService {
     switch (notification.getType()) {
       case EMAIL -> {
 
-        Response<SendEmailResponse> response = govukNotifyService.sendEmail(notification);
+        Response<SendEmailResponse> response = govukNotifySender.sendEmail(notification);
 
         if (response.isSuccessfulResponse()) {
           setPropertiesForSentToGovukNotify(notification, response.successResponseObject().getNotificationId());
@@ -86,7 +86,7 @@ class NotificationSendingService {
       }
       case SMS -> {
 
-        Response<SendSmsResponse> response = govukNotifyService.sendSms(notification);
+        Response<SendSmsResponse> response = govukNotifySender.sendSms(notification);
 
         if (response.isSuccessfulResponse()) {
           setPropertiesForSentToGovukNotify(notification, response.successResponseObject().getNotificationId());

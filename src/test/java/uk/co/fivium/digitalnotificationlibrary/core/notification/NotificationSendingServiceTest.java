@@ -25,17 +25,18 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.ResourceUtils;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
+import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationPropertiesTestUtil;
 import uk.gov.service.notify.SendEmailResponse;
 import uk.gov.service.notify.SendSmsResponse;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationSendingServiceTest {
 
-  private static final Integer BULK_RETRIEVAL_SIZE = 10;
+  private static final Integer BULK_RETRIEVAL_SIZE = 5;
 
   private static NotificationLibraryNotificationRepository notificationRepository;
 
-  private static GovukNotifyService govukNotifyService;
+  private static TestGovukNotifySender govukNotifyService;
 
   private static PlatformTransactionManager transactionManager;
 
@@ -49,9 +50,9 @@ class NotificationSendingServiceTest {
   @BeforeAll
   static void beforeAllSetup() {
 
-    libraryConfigurationProperties = PropertiesTestBuilder.builder().build();
+    libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder().build();
 
-    govukNotifyService = mock(GovukNotifyService.class);
+    govukNotifyService = mock(TestGovukNotifySender.class);
 
     transactionManager = mock(PlatformTransactionManager.class);
 
@@ -74,7 +75,7 @@ class NotificationSendingServiceTest {
   @Test
   void sendQueuedNotificationToNotify_whenNoBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
 
-    var libraryConfigurationProperties = PropertiesTestBuilder.builder()
+    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
         .withQueuedNotificationRetrievalLimit(null)
         .build();
 
@@ -98,10 +99,9 @@ class NotificationSendingServiceTest {
   @Test
   void sendQueuedNotificationToNotify_whenNoNotificationPropertySet_thenVerifyDefaultUsed() {
 
-    var libraryConfigurationProperties = new NotificationLibraryConfigurationProperties(
-        new NotificationLibraryConfigurationProperties.GovUkNotify("key"),
-        null
-    );
+    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+        .withNotificationProperties(null)
+        .build();
 
     notificationSendingService = new NotificationSendingService(
         transactionManager,
@@ -123,10 +123,9 @@ class NotificationSendingServiceTest {
   @Test
   void sendQueuedNotificationToNotify_whenNoQueuedPropertySet_thenVerifyDefaultUsed() {
 
-    var libraryConfigurationProperties = new NotificationLibraryConfigurationProperties(
-        new NotificationLibraryConfigurationProperties.GovUkNotify("key"),
-        new NotificationLibraryConfigurationProperties.Notification(null)
-    );
+    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+        .withQueuedNotificationProperties(null)
+        .build();
 
     notificationSendingService = new NotificationSendingService(
         transactionManager,
@@ -148,7 +147,7 @@ class NotificationSendingServiceTest {
   @Test
   void sendQueuedNotificationToNotify_whenBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
 
-    var libraryConfigurationProperties = PropertiesTestBuilder.builder()
+    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
         .withQueuedNotificationRetrievalLimit(42)
         .build();
 
@@ -414,31 +413,5 @@ class NotificationSendingServiceTest {
         "classpath:uk/co/fivium/digitalnotificationlibrary/core/notification/notify/" + resourceName
     );
     return Files.readAllBytes(file.toPath());
-  }
-
-  static class PropertiesTestBuilder {
-
-    static Builder builder() {
-      return new Builder();
-    }
-
-    static class Builder {
-
-      private Integer queuedNotificationBulkRetrievalLimit = 10;
-
-      Builder withQueuedNotificationRetrievalLimit(Integer queuedNotificationBulkRetrievalLimit) {
-        this.queuedNotificationBulkRetrievalLimit = queuedNotificationBulkRetrievalLimit;
-        return this;
-      }
-
-      NotificationLibraryConfigurationProperties build() {
-        return new NotificationLibraryConfigurationProperties(
-            new NotificationLibraryConfigurationProperties.GovUkNotify("api-key"),
-            new NotificationLibraryConfigurationProperties.Notification(
-                new NotificationLibraryConfigurationProperties.Notification.Queued(1, queuedNotificationBulkRetrievalLimit)
-            )
-        );
-      }
-    }
   }
 }
