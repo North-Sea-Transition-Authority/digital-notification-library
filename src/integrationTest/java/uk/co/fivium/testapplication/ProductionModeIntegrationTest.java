@@ -11,16 +11,11 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
-import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.DomainReference;
-import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLibraryClient;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsRecipient;
 import uk.gov.service.notify.Notification;
-import uk.gov.service.notify.NotificationClient;
-import uk.gov.service.notify.NotificationClientException;
 
 @DisplayName("GIVEN the library is running in production mode")
 @IntegrationTest
@@ -29,16 +24,7 @@ import uk.gov.service.notify.NotificationClientException;
     "digital-notification-library.test-mode.email-recipients=",
     "digital-notification-library.test-mode.sms-recipients="
 })
-class ProductionModeIntegrationTest {
-
-  @Autowired
-  private NotificationLibraryClient notificationLibraryClient;
-
-  @Autowired
-  private NotificationLibraryConfigurationProperties libraryConfigurationProperties;
-
-  @Autowired
-  private NotificationClient notifyNotificationClient;
+class ProductionModeIntegrationTest extends AbstractIntegrationTest {
 
   @DisplayName("WHEN I send an email")
   @Nested
@@ -50,12 +36,7 @@ class ProductionModeIntegrationTest {
 
       var logCorrelationId = "sendEmail_thenIntendedRecipient-%s".formatted(UUID.randomUUID());
 
-      var template = GovukNotifyTemplate.EMAIL_TEMPLATE;
-
-      var mergedTemplate = notificationLibraryClient.getTemplate(template.getGovukNotifyTemplateId())
-          .withMailMergeField("name", "name-value")
-          .withMailMergeField("reference", "reference-value")
-          .merge();
+      var mergedTemplate = getEmailMergeTemplate();
 
       notificationLibraryClient.sendEmail(
           mergedTemplate,
@@ -97,12 +78,7 @@ class ProductionModeIntegrationTest {
 
       var logCorrelationId = "sendSms_thenIntendedRecipient-%s".formatted(UUID.randomUUID());
 
-      var template = GovukNotifyTemplate.SMS_TEMPLATE;
-
-      var mergedTemplate = notificationLibraryClient.getTemplate(template.getGovukNotifyTemplateId())
-          .withMailMergeField("name", "name-value")
-          .withMailMergeField("reference", "reference-value")
-          .merge();
+      var mergedTemplate = getSmsMergeTemplate();
 
       notificationLibraryClient.sendSms(
           mergedTemplate,
@@ -131,10 +107,5 @@ class ProductionModeIntegrationTest {
                 );
           });
     }
-  }
-
-  private List<Notification> getNotifications(String logCorrelationId) throws NotificationClientException {
-    return notifyNotificationClient.getNotifications(null, null, logCorrelationId, null)
-        .getNotifications();
   }
 }

@@ -19,5 +19,5 @@ digital-notification-library:
     api-key: ${INTEGRATION_TEST_GOVUK_NOTIFY_API_KEY:}
   notification:
     bulk-retrieval-limit: 2
-    poll-time-seconds: 2
+    poll-time-seconds: 1
   mode: production
