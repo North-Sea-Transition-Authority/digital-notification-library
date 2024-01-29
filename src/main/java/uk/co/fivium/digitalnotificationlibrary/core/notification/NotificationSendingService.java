@@ -3,8 +3,6 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import net.javacrumbs.shedlock.core.LockAssert;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,14 +43,7 @@ class NotificationSendingService {
     this.libraryConfigurationProperties = libraryConfigurationProperties;
   }
 
-  @ScheduledTask(
-      fixedDelayString = "${digital-notification-library.notification.queued.poll-time-seconds:10}",
-      timeUnit = TimeUnit.SECONDS,
-      lockName = "NotificationSendingService_sendQueuedNotificationToNotify"
-  )
-  void sendQueuedNotificationToNotify() {
-
-    LockAssert.assertLocked();
+  void sendNotificationToNotify() {
 
     LOGGER.debug("Polling notifications with status {} to send to notify", NotificationStatus.QUEUED);
 
@@ -163,8 +154,8 @@ class NotificationSendingService {
 
     var notificationProperties = libraryConfigurationProperties.notification();
 
-    return notificationProperties != null && notificationProperties.queued() != null
-        ? Optional.ofNullable(notificationProperties.queued().bulkRetrievalLimit()).orElse(DEFAULT_BULK_RETRIEVAL_LIMIT)
+    return notificationProperties != null
+        ? Optional.ofNullable(notificationProperties.bulkRetrievalLimit()).orElse(DEFAULT_BULK_RETRIEVAL_LIMIT)
         : DEFAULT_BULK_RETRIEVAL_LIMIT;
   }
 }

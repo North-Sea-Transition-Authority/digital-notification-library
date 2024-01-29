@@ -64,10 +64,10 @@ class ProductionModeIntegrationTest {
           logCorrelationId
       );
 
-      long queuedNotificationPollTimeSeconds = libraryConfigurationProperties.notification().queued().pollTimeSeconds();
+      long notificationPollTimeSeconds = libraryConfigurationProperties.notification().pollTimeSeconds();
 
       await()
-          .during(Duration.ofSeconds(2 * queuedNotificationPollTimeSeconds))
+          .during(Duration.ofSeconds(2 * notificationPollTimeSeconds))
           .atMost(Duration.ofSeconds(20))
           .untilAsserted(() -> {
 
@@ -111,10 +111,10 @@ class ProductionModeIntegrationTest {
           logCorrelationId
       );
 
-      long queuedNotificationPollTimeSeconds = libraryConfigurationProperties.notification().queued().pollTimeSeconds();
+      long notificationPollTimeSeconds = libraryConfigurationProperties.notification().pollTimeSeconds();
 
       await()
-          .during(Duration.ofSeconds(2 * queuedNotificationPollTimeSeconds))
+          .during(Duration.ofSeconds(2 * notificationPollTimeSeconds))
           .atMost(Duration.ofSeconds(20))
           .untilAsserted(() -> {
 

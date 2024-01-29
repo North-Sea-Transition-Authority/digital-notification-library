@@ -73,10 +73,10 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenNoBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
+  void sendNotificationToNotify_whenNoBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
 
     var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
-        .withQueuedNotificationRetrievalLimit(null)
+        .withNotificationRetrievalLimit(null)
         .build();
 
     notificationSendingService = new NotificationSendingService(
@@ -86,7 +86,7 @@ class NotificationSendingServiceTest {
         libraryConfigurationProperties
     );
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -97,7 +97,7 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenNoNotificationPropertySet_thenVerifyDefaultUsed() {
+  void sendNotificationToNotify_whenNoNotificationPropertySet_thenVerifyDefaultUsed() {
 
     var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
         .withNotificationProperties(null)
@@ -110,7 +110,7 @@ class NotificationSendingServiceTest {
         libraryConfigurationProperties
     );
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -121,10 +121,10 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenNoQueuedPropertySet_thenVerifyDefaultUsed() {
+  void sendNotificationToNotify_whenBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
 
     var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
-        .withQueuedNotificationProperties(null)
+        .withNotificationRetrievalLimit(42)
         .build();
 
     notificationSendingService = new NotificationSendingService(
@@ -134,31 +134,7 @@ class NotificationSendingServiceTest {
         libraryConfigurationProperties
     );
 
-    notificationSendingService.sendQueuedNotificationToNotify();
-
-    then(notificationRepository)
-        .should()
-        .findNotificationByStatusOrderByRequestedOnAsc(
-            NotificationStatus.QUEUED,
-            PageRequest.of(0, NotificationSendingService.DEFAULT_BULK_RETRIEVAL_LIMIT)
-        );
-  }
-
-  @Test
-  void sendQueuedNotificationToNotify_whenBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
-
-    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
-        .withQueuedNotificationRetrievalLimit(42)
-        .build();
-
-    notificationSendingService = new NotificationSendingService(
-        transactionManager,
-        notificationRepository,
-        govukNotifyService,
-        libraryConfigurationProperties
-    );
-
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -170,7 +146,7 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenNoNotifications_thenVerifyInteractions() {
+  void sendNotificationToNotify_whenNoNotifications_thenVerifyInteractions() {
 
     given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
         NotificationStatus.QUEUED,
@@ -178,7 +154,7 @@ class NotificationSendingServiceTest {
     ))
         .willReturn(Collections.emptyList());
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should(never())
@@ -186,7 +162,7 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties()
+  void sendNotificationToNotify_whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties()
       throws IOException {
 
     var queuedNotification = NotificationTestUtil.builder()
@@ -209,7 +185,7 @@ class NotificationSendingServiceTest {
     given(govukNotifyService.sendEmail(queuedNotification))
         .willReturn(expectedEmailResponse);
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -231,7 +207,7 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenQueuedSmsNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties()
+  void sendNotificationToNotify_whenQueuedSmsNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties()
       throws IOException {
 
     var queuedNotification = NotificationTestUtil.builder()
@@ -253,7 +229,7 @@ class NotificationSendingServiceTest {
     given(govukNotifyService.sendSms(queuedNotification))
         .willReturn(expectedSmsResponse);
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -276,7 +252,7 @@ class NotificationSendingServiceTest {
 
   @ParameterizedTest
   @ValueSource(ints = {403, 400})
-  void sendQueuedNotificationToNotify_whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(
+  void sendNotificationToNotify_whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(
       int permanentErrorHttpStatus
   ) {
 
@@ -294,7 +270,7 @@ class NotificationSendingServiceTest {
     given(govukNotifyService.sendEmail(queuedNotification))
         .willReturn(Response.failedResponse(permanentErrorHttpStatus, "error-message"));
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -310,7 +286,7 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenEmailNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
+  void sendNotificationToNotify_whenEmailNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
 
     var queuedNotification = NotificationTestUtil.builder()
         .withType(NotificationType.EMAIL)
@@ -326,7 +302,7 @@ class NotificationSendingServiceTest {
     given(govukNotifyService.sendEmail(queuedNotification))
         .willReturn(Response.failedResponse(500, "error-message"));
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -343,7 +319,7 @@ class NotificationSendingServiceTest {
 
   @ParameterizedTest
   @ValueSource(ints = {403, 400})
-  void sendQueuedNotificationToNotify_whenSmsNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(
+  void sendNotificationToNotify_whenSmsNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(
       int permanentErrorHttpStatus
   ) {
 
@@ -361,7 +337,7 @@ class NotificationSendingServiceTest {
     given(govukNotifyService.sendSms(queuedNotification))
         .willReturn(Response.failedResponse(permanentErrorHttpStatus, "error-message"));
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()
@@ -377,7 +353,7 @@ class NotificationSendingServiceTest {
   }
 
   @Test
-  void sendQueuedNotificationToNotify_whenSmsNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
+  void sendNotificationToNotify_whenSmsNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
 
     var queuedNotification = NotificationTestUtil.builder()
         .withType(NotificationType.SMS)
@@ -393,7 +369,7 @@ class NotificationSendingServiceTest {
     given(govukNotifyService.sendSms(queuedNotification))
         .willReturn(Response.failedResponse(500, "error-message"));
 
-    notificationSendingService.sendQueuedNotificationToNotify();
+    notificationSendingService.sendNotificationToNotify();
 
     then(notificationRepository)
         .should()

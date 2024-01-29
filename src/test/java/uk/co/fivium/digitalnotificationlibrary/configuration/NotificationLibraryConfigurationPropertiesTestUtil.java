@@ -15,22 +15,17 @@ public class NotificationLibraryConfigurationPropertiesTestUtil {
 
   public static class Builder {
 
-    private boolean hasSetQueuedPropertyObject = false;
+    private final Integer notificationPollTimeSeconds = 10;
 
-    private final Integer queuedNotificationPollTimeSeconds = 10;
-
-    private Integer queuedNotificationBulkRetrievalLimit = 5;
-
-    private NotificationLibraryConfigurationProperties.Notification.Queued queuedNotificationProperties =
-        new NotificationLibraryConfigurationProperties.Notification.Queued(
-            queuedNotificationPollTimeSeconds,
-            queuedNotificationBulkRetrievalLimit
-        );
+    private Integer notificationBulkRetrievalLimit = 5;
 
     private boolean hasSetNotificationPropertyObject = false;
 
     private NotificationLibraryConfigurationProperties.Notification notificationProperties =
-        new NotificationLibraryConfigurationProperties.Notification(queuedNotificationProperties);
+        new NotificationLibraryConfigurationProperties.Notification(
+            notificationPollTimeSeconds,
+            notificationBulkRetrievalLimit
+        );
 
     private NotificationMode notificationMode = NotificationMode.TEST;
 
@@ -41,22 +36,14 @@ public class NotificationLibraryConfigurationPropertiesTestUtil {
     private Builder() {
     }
 
-    public Builder withQueuedNotificationProperties(
-        NotificationLibraryConfigurationProperties.Notification.Queued queuedNotificationProperties
-    ) {
-      this.queuedNotificationProperties = queuedNotificationProperties;
-      this.hasSetQueuedPropertyObject = true;
-      return this;
-    }
-
     public Builder withNotificationProperties(NotificationLibraryConfigurationProperties.Notification notificationProperties) {
       this.notificationProperties = notificationProperties;
       this.hasSetNotificationPropertyObject = true;
       return this;
     }
 
-    public Builder withQueuedNotificationRetrievalLimit(Integer queuedNotificationBulkRetrievalLimit) {
-      this.queuedNotificationBulkRetrievalLimit = queuedNotificationBulkRetrievalLimit;
+    public Builder withNotificationRetrievalLimit(Integer notificationBulkRetrievalLimit) {
+      this.notificationBulkRetrievalLimit = notificationBulkRetrievalLimit;
       return this;
     }
 
@@ -87,16 +74,12 @@ public class NotificationLibraryConfigurationPropertiesTestUtil {
 
     public NotificationLibraryConfigurationProperties build() {
 
-      var queuedObjectProperties = hasSetQueuedPropertyObject
-          ? queuedNotificationProperties
-          : new NotificationLibraryConfigurationProperties.Notification.Queued(
-              queuedNotificationPollTimeSeconds,
-          queuedNotificationBulkRetrievalLimit
-          );
-
       var notificationObjectProperties = hasSetNotificationPropertyObject
           ? notificationProperties
-          : new NotificationLibraryConfigurationProperties.Notification(queuedObjectProperties);
+          : new NotificationLibraryConfigurationProperties.Notification(
+              notificationPollTimeSeconds,
+              notificationBulkRetrievalLimit
+      );
 
       var testMode = new NotificationLibraryConfigurationProperties.TestMode(testEmailRecipients, testSmsRecipients);
 
