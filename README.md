@@ -20,6 +20,13 @@ This library is a Spring Boot starter designed to be used within Spring applicat
 
 In order to use this library your application must provide:
 
+### Your service is registered on GOV.UK notify
+
+Your service needs to be registered on [GOV.UK Notify](https://www.notifications.service.gov.uk/) before integrating 
+with the library. Your customer will need to register the service on our behalf as only users from a government department
+(e.g. with a gov.uk domain) or from an approved regulator can create new Notify accounts. They will need to add someone 
+from Fivium to the account once it has been registered.
+
 ### A ShedLock LockProvider bean
 
 The library requires [ShedLock](https://github.com/lukas-krecan/ShedLock) to handle concurrent locking for scheduled jobs. 
@@ -124,7 +131,7 @@ The template class contains
 - `verificationStatus` – Status indicating if the template is a confirmed notify template or not. If Notify is down 
   you wil get a status of `UNCONFIRMED_NOTIFY_TEMPLATE`. If Notify responds you get a status of `CONFIRMED_NOTIFY_TEMPLATE`
 
-### Sending an email
+### Sending an email or sms
 
 #### Domain reference
 
@@ -152,12 +159,16 @@ MergedTemplate mergedTemplate = notificationLibraryClient.getTemplate("notify te
     .merge();
 ```
 
-#### Email recipient
-The recipient of the email can be configured in two ways. The first way is directly by creating an `EmailRecipient` object
-by doing `EmailRecipient.directEmailAddress("someone@example.com")`. This can be used when you have raw email addresses
-such as business/regulator emails that come from property files.
+#### Recipient
 
-The other approach is to make your user object implement the `EmailRecipient` interface.
+The recipient of the notification can be configured in two ways. 
+
+If you have a string email address or phone number that isn't associated with a user object you can create a recipient 
+by doing `EmailRecipient.directEmailAddress("someone@example.com")` for an email address or `SmsRecipient.directPhoneNumber("07642347589")`
+when sending a sms. This is ideal for scenarios such as having business/regulator email that come from property file.
+
+If you have user objects in your service you can implement the `EmailRecipient` or `SmsRecipient` interfaces depending 
+the notifications you want to send.
 
 ```java
 public record User(String id, ..., String emailAddress) implements EmailRecipient {
@@ -168,7 +179,7 @@ public record User(String id, ..., String emailAddress) implements EmailRecipien
 }
 ```
 
-This will allow you to pass an entire `User` object to the `sendEmail()` method.
+This will allow you to pass an entire `User` object to the `sendEmail()` or `sendSms()` method as per the below example.
 
 ```java
 void sendUsersEmail() {
@@ -206,3 +217,40 @@ void sendUsersEmail() {
   );
 }
 ```
+
+### What if a notification fails to send?
+
+A notification can fail to send for a number of reasons. If the failure reason is due to a permanent error such as email
+address or phone number doesn't exist or not enough mail merge fields have been provided for the template then the 
+notification will not be retried.
+
+If the failure reason is due to a temporary error such as the mailbox being full or GOV.UK Notify being unavailable then 
+the library will automatically attempt to retry sending the notification up until 72 hours after the notification was 
+requested to be sent originally. The idea being that after 72 hours the notification is likely to be no longer relevant 
+to the user.
+
+By default, the retry times will be as follows:
+- first retry after 10 seconds of last send attempt
+- second retry after 20 seconds of last send attempt
+- third retry after 40 seconds of last send attempt
+- fourth retry after 80 seconds of last send attempt
+- fifth retry after 160 seconds of last send attempt
+- after 72 hours the notification will no longer attempt to send if it hasn't been sent since
+
+### Can I change how often notifications are sent or updated or how many are processed?
+
+By default, a scheduled job runs every 10 seconds within the library which will send any notifications to notify which
+have not yet been sent and also update the statuses of any notifications to see if they have been sent or not. Each 
+iteration of the job will process 100 notifications at a time.
+
+If you want to change any of the default settings, you can set either of the properties below. Setting the below will
+result in the scheduled job running every 30 seconds and will do 500 notifications at a time.
+
+```groovy
+digital-notification-library.notification.poll-time-seconds=30
+digital-notification-library.notification.bulk-retrieval-limit=500
+```
+
+### How can I see notifications being sent within the library?
+
+### What are the statuses of notifications that are used within the library?
