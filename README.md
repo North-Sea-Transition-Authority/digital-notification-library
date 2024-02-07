@@ -175,6 +175,24 @@ a version of an application and that was modelled in your application via a `App
 create a `DomainReference` in the following way:
 
 ```java
+class ApplicationVersion implements DomainReference {
+  
+  @Override
+  String getId() {
+    return application.getId();
+  }
+  
+  @Override
+  String getType() {
+    return "APPLICATION_VERSION";
+  }
+  
+}
+```
+
+Alternatively, if you don't have an object you can create a `DomainReference` object manually by doing:
+
+```java
 DomainReference domainReference = DomainReference.of(applicationVersion.id(), "APPLICATION_VERSION");
 ```
 
