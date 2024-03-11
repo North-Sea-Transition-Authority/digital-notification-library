@@ -301,6 +301,11 @@ to the user. The retry attempts use an exponential backoff strategy defaulting t
 - fifth retry after 160 seconds of last send attempt
 - after 72 hours the notification will no longer attempt to send if it hasn't been sent since
 
+__Note__: It could be the case that if 10 seconds after the last send attempt is 09:00:01 and the job runs at 09:00:00 then
+this iteration of the job will not pick up the notification as the time hasn't elapsed yet. It has been accepted that this
+is not a high priority problem and can be solved by documentation. If we are going address this problem their is a [proposed
+solution](https://github.com/Fivium/digital-notification-library/pull/25#discussion_r1477895444) discussed.
+
 ### Can I change how often notifications are sent or updated or how many are processed?
 
 By default, a scheduled job runs every 10 seconds within the library which will send any notifications to notify which
@@ -315,7 +320,7 @@ digital-notification-library.notification.poll-time-seconds=30
 digital-notification-library.notification.bulk-retrieval-limit=500
 ```
 
-Note: The above change will also mean the first retry of a notification will not be until 30 seconds after the first
+**Note**: The above change will also mean the first retry of a notification will not be until 30 seconds after the first
 send attempt, then 60 seconds, 120 seconds etc.
 
 ### How can I see notifications being sent within the library?
