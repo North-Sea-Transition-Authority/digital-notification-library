@@ -232,8 +232,8 @@ public class NotificationLibraryClient {
     notification.setStatus(NotificationStatus.QUEUED);
     notification.setType(notificationType);
     notification.setRecipient(recipient);
-    notification.setDomainReferenceId(domainReference.getId());
-    notification.setDomainReferenceType(domainReference.getType());
+    notification.setDomainReferenceId(domainReference.getDomainId());
+    notification.setDomainReferenceType(domainReference.getDomainType());
     notification.setMailMergeFields(mailMergeFields);
     notification.setNotifyTemplateId(template.notifyTemplateId());
     notification.setRequestedOn(clock.instant());

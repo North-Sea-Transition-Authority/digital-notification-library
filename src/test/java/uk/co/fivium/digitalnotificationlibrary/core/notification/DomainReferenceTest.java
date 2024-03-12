@@ -12,7 +12,7 @@ class DomainReferenceTest {
     var resultingDomainReference = DomainReference.from("id", "type");
 
     assertThat(resultingDomainReference)
-        .extracting(DomainReference::getId, DomainReference::getType)
+        .extracting(DomainReference::getDomainId, DomainReference::getDomainType)
         .contains("id", "type");
   }
 }

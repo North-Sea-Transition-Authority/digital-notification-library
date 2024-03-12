@@ -12,30 +12,30 @@ public interface DomainReference {
    * Get the ID of the domain object that is associated to the notification.
    * @return The ID of the domain object
    */
-  String getId();
+  String getDomainId();
 
   /**
    * Get the type of the domain object that is associated to the notification.
    * @return The type of the domain object
    */
-  String getType();
+  String getDomainType();
 
   /**
    * Utility method to easily to statically construct a domain reference.
-   * @param id The identifier of the domain object
-   * @param type The type of the domain object, e.g. APPLICATION
+   * @param domainId The identifier of the domain object
+   * @param domainType The type of the domain object, e.g. APPLICATION
    * @return a constructed domain reference object
    */
-  static DomainReference from(String id, String type) {
+  static DomainReference from(String domainId, String domainType) {
     return new DomainReference() {
       @Override
-      public String getId() {
-        return id;
+      public String getDomainId() {
+        return domainId;
       }
 
       @Override
-      public String getType() {
-        return type;
+      public String getDomainType() {
+        return domainType;
       }
     };
   }
