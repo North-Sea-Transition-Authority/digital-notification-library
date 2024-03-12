@@ -1,9 +1,12 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -15,11 +18,19 @@ import org.springframework.stereotype.Repository;
 public interface NotificationLibraryNotificationRepository extends CrudRepository<Notification, UUID> {
 
   /**
-   * Get all notifications with the provided status taking into account the requested pagination. Results are
-   * ordered by requested on date in ascending order.
-   * @param status The status of notifications to return
-   * @param pageable The pagination information to restrict results to
-   * @return notifications with the requested status and pagination ordered by requested on date ascending
+   * Get all notifications with the provided statuses taking into account the requested pagination. Notifications
+   * are order by last send attempt date (taking into account null values) followed by the requested on date.
+   * @param statuses The statuses of notifications to return
+   * @param pageRequest pageable The pagination information to restrict results to
+   * @return notifications with the requested statuses and pagination ordered by requested on date ascending
    */
-  List<Notification> findNotificationByStatusOrderByRequestedOnAsc(NotificationStatus status, Pageable pageable);
+
+  @Query(value = """
+        SELECT n
+        FROM Notification n
+        WHERE n.status IN :statuses
+        ORDER BY n.lastSendAttemptAt ASC NULLS FIRST, n.requestedOn ASC
+      """)
+  List<Notification> findNotificationsByStatuses(@Param("statuses") Collection<NotificationStatus> statuses,
+                                                 PageRequest pageRequest);
 }

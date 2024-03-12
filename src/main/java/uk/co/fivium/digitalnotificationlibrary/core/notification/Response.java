@@ -5,6 +5,10 @@ record Response<T>(T successResponseObject, ErrorResponse error) {
     return successResponseObject != null;
   }
 
+  boolean isErrorResponse() {
+    return !isSuccessfulResponse();
+  }
+
   static <T> Response<T> successfulResponse(T responseObject) {
     return new Response<>(responseObject, null);
   }

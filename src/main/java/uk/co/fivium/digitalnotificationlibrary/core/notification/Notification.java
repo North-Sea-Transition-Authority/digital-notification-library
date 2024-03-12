@@ -35,6 +35,8 @@ class Notification {
 
   private String notifyStatus;
 
+  private Instant notifyStatusLastUpdatedAt;
+
   private String recipient;
 
   @JdbcTypeCode(SqlTypes.JSON)
@@ -48,7 +50,15 @@ class Notification {
 
   private Instant requestedOn;
 
+  private Instant sentAt;
+
   private String failureReason;
+
+  private Instant lastFailedAt;
+
+  private Integer retryCount;
+
+  private Instant lastSendAttemptAt;
 
   protected Notification() {
   }
@@ -157,6 +167,46 @@ class Notification {
     this.failureReason = failureReason;
   }
 
+  Instant getLastFailedAt() {
+    return lastFailedAt;
+  }
+
+  void setLastFailedAt(Instant lastFailedAt) {
+    this.lastFailedAt = lastFailedAt;
+  }
+
+  Instant getNotifyStatusLastUpdatedAt() {
+    return notifyStatusLastUpdatedAt;
+  }
+
+  void setNotifyStatusLastUpdatedAt(Instant notifyStatusLastUpdatedAt) {
+    this.notifyStatusLastUpdatedAt = notifyStatusLastUpdatedAt;
+  }
+
+  Instant getSentAt() {
+    return sentAt;
+  }
+
+  void setSentAt(Instant sentAt) {
+    this.sentAt = sentAt;
+  }
+
+  Instant getLastSendAttemptAt() {
+    return lastSendAttemptAt;
+  }
+
+  void setLastSendAttemptAt(Instant lastSendAttemptAt) {
+    this.lastSendAttemptAt = lastSendAttemptAt;
+  }
+
+  Integer getRetryCount() {
+    return retryCount;
+  }
+
+  void setRetryCount(Integer retryCount) {
+    this.retryCount = retryCount;
+  }
+
   @Override
   public String toString() {
     return "Notification{" +
@@ -166,13 +216,18 @@ class Notification {
         ", notifyTemplateId='" + notifyTemplateId + '\'' +
         ", notifyNotificationId='" + notifyNotificationId + '\'' +
         ", notifyStatus='" + notifyStatus + '\'' +
+        ", notifyStatusLastUpdatedAt=" + notifyStatusLastUpdatedAt +
         ", recipient='" + recipient + '\'' +
         ", mailMergeFields=" + mailMergeFields +
         ", domainReferenceId='" + domainReferenceId + '\'' +
         ", domainReferenceType='" + domainReferenceType + '\'' +
         ", logCorrelationId='" + logCorrelationId + '\'' +
         ", requestedOn=" + requestedOn +
+        ", sentAt=" + sentAt +
         ", failureReason='" + failureReason + '\'' +
+        ", lastFailedAt='" + lastFailedAt +
+        ", retryCount='" + retryCount + '\'' +
+        ", lastSendAttemptAt='" + lastSendAttemptAt +
         '}';
   }
 }

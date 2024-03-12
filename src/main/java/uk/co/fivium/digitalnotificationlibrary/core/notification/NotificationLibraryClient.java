@@ -97,18 +97,23 @@ public class NotificationLibraryClient {
       throw new DigitalNotificationLibraryException("MergedTemplate must not be null");
     }
 
-    if (!TemplateType.EMAIL.equals(mergedTemplate.getTemplate().type())) {
+    if (!isEmailTemplateType(mergedTemplate)) {
       throw new DigitalNotificationLibraryException(
-          "Cannot send an email with template of type %s".formatted(mergedTemplate.getTemplate().type())
+          "Cannot send an email for template with ID %s and type %s"
+              .formatted(mergedTemplate.getTemplate().notifyTemplateId(), mergedTemplate.getTemplate().type())
       );
     }
 
     if (recipient == null || StringUtils.isBlank(recipient.getEmailAddress())) {
-      throw new DigitalNotificationLibraryException("EmailRecipient must not be null or empty");
+      throw new DigitalNotificationLibraryException(
+          "EmailRecipient must not be null or empty for notification with correlation ID %s".formatted(logCorrelationId)
+      );
     }
 
     if (domainReference == null) {
-      throw new DigitalNotificationLibraryException("DomainReference must not be null");
+      throw new DigitalNotificationLibraryException(
+          "DomainReference must not be null for notification with correlation ID %s".formatted(logCorrelationId)
+      );
     }
 
     var notification = queueNotification(
@@ -155,18 +160,23 @@ public class NotificationLibraryClient {
       throw new DigitalNotificationLibraryException("MergedTemplate must not be null");
     }
 
-    if (!TemplateType.SMS.equals(mergedTemplate.getTemplate().type())) {
+    if (!isSmsTemplateType(mergedTemplate)) {
       throw new DigitalNotificationLibraryException(
-          "Cannot send an sms with template of type %s".formatted(mergedTemplate.getTemplate().type())
+          "Cannot send an sms for template with ID %s and type %s"
+              .formatted(mergedTemplate.getTemplate().notifyTemplateId(), mergedTemplate.getTemplate().type())
       );
     }
 
     if (recipient == null || StringUtils.isBlank(recipient.getSmsRecipient())) {
-      throw new DigitalNotificationLibraryException("SmsRecipient must not be null or empty");
+      throw new DigitalNotificationLibraryException(
+          "SmsRecipient must not be null or empty for notification with correlation ID %s".formatted(logCorrelationId)
+      );
     }
 
     if (domainReference == null) {
-      throw new DigitalNotificationLibraryException("DomainReference must not be null");
+      throw new DigitalNotificationLibraryException(
+          "DomainReference must not be null for notification with correlation ID %s".formatted(logCorrelationId)
+      );
     }
 
     var notification = queueNotification(
@@ -227,6 +237,7 @@ public class NotificationLibraryClient {
     notification.setMailMergeFields(mailMergeFields);
     notification.setNotifyTemplateId(template.notifyTemplateId());
     notification.setRequestedOn(clock.instant());
+    notification.setRetryCount(0);
 
     if (StringUtils.isNotBlank(logCorrelationId)) {
       notification.setLogCorrelationId(logCorrelationId);
@@ -241,5 +252,13 @@ public class NotificationLibraryClient {
       case HttpStatus.SC_FORBIDDEN, HttpStatus.SC_NOT_FOUND, HttpStatus.SC_BAD_REQUEST -> true;
       default -> false;
     };
+  }
+
+  private boolean isEmailTemplateType(MergedTemplate template) {
+    return Set.of(TemplateType.EMAIL, TemplateType.UNKNOWN).contains(template.getTemplate().type());
+  }
+
+  private boolean isSmsTemplateType(MergedTemplate template) {
+    return Set.of(TemplateType.SMS, TemplateType.UNKNOWN).contains(template.getTemplate().type());
   }
 }

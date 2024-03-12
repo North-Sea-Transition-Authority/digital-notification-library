@@ -5,13 +5,18 @@ CREATE TABLE notification_library_notifications (
   notify_template_id TEXT NOT NULL,
   notify_notification_id TEXT,
   notify_status TEXT,
+  notify_status_last_updated_at TIMESTAMPTZ,
   recipient TEXT NOT NULL,
   mail_merge_fields JSONB,
   domain_reference_id TEXT NOT NULL,
   domain_reference_type TEXT NOT NULL,
   log_correlation_id TEXT,
   requested_on TIMESTAMPTZ NOT NULL,
-  failure_reason TEXT
+  sent_at TIMESTAMPTZ,
+  failure_reason TEXT,
+  last_failed_at TIMESTAMPTZ,
+  retry_count INT,
+  last_send_attempt_at TIMESTAMPTZ
 );
 
 CREATE TABLE notification_library_notifications_aud (
@@ -20,6 +25,7 @@ CREATE TABLE notification_library_notifications_aud (
   id UUID,
   type TEXT,
   status TEXT,
+  notify_status_last_updated_at TIMESTAMPTZ,
   notify_template_id TEXT,
   notify_notification_id TEXT,
   notify_status TEXT,
@@ -29,5 +35,9 @@ CREATE TABLE notification_library_notifications_aud (
   domain_reference_type TEXT,
   log_correlation_id TEXT,
   requested_on TIMESTAMPTZ,
-  failure_reason TEXT
+  sent_at TIMESTAMPTZ,
+  failure_reason TEXT,
+  last_failed_at TIMESTAMPTZ,
+  retry_count INT,
+  last_send_attempt_at TIMESTAMPTZ
 );

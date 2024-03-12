@@ -4,7 +4,7 @@ plugins {
     id 'java-library'
     // This plugin isn't applied as this isn't an executable app. It is still required as a dependency, see the below
     // comment on the dependencyManagement block for why.
-    id 'org.springframework.boot' version '3.2.0' apply false
+    id 'org.springframework.boot' version '3.2.3' apply false
     id 'io.spring.dependency-management' version '1.1.4'
     id 'checkstyle'
     id 'jacoco'

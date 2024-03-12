@@ -9,11 +9,17 @@ import static org.mockito.Mockito.never;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
-import net.javacrumbs.shedlock.core.LockAssert;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,10 +35,15 @@ import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibrary
 import uk.gov.service.notify.SendEmailResponse;
 import uk.gov.service.notify.SendSmsResponse;
 
+@DisplayName("GIVEN I want to send notifications to notify")
 @ExtendWith(MockitoExtension.class)
 class NotificationSendingServiceTest {
 
   private static final Integer BULK_RETRIEVAL_SIZE = 5;
+
+  private static final Instant FIXED_INSTANT = Instant.now();
+
+  private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneId.systemDefault());
 
   private static NotificationLibraryNotificationRepository notificationRepository;
 
@@ -55,8 +66,6 @@ class NotificationSendingServiceTest {
     govukNotifyService = mock(TestGovukNotifySender.class);
 
     transactionManager = mock(PlatformTransactionManager.class);
-
-    LockAssert.TestHelper.makeAllAssertsPass(true);
   }
 
   @BeforeEach
@@ -68,320 +77,635 @@ class NotificationSendingServiceTest {
         transactionManager,
         notificationRepository,
         govukNotifyService,
-        libraryConfigurationProperties
+        libraryConfigurationProperties,
+        FIXED_CLOCK
     );
   }
 
-  @Test
-  void sendNotificationToNotify_whenNoBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
+  @DisplayName("WHEN no custom bulk retrieval value provided")
+  @Nested
+  class WhenNoCustomBulkRetrievalSet {
 
-    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
-        .withNotificationRetrievalLimit(null)
-        .build();
+    @DisplayName("THEN the default library value will be used instead")
+    @Test
+    void sendNotificationToNotify_whenNoBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
 
-    notificationSendingService = new NotificationSendingService(
-        transactionManager,
-        notificationRepository,
-        govukNotifyService,
-        libraryConfigurationProperties
-    );
+      var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+          .withNotificationRetrievalLimit(null)
+          .build();
 
-    notificationSendingService.sendNotificationToNotify();
+      notificationSendingService = new NotificationSendingService(
+          transactionManager,
+          notificationRepository,
+          govukNotifyService,
+          libraryConfigurationProperties,
+          FIXED_CLOCK
+      );
 
-    then(notificationRepository)
-        .should()
-        .findNotificationByStatusOrderByRequestedOnAsc(
-            NotificationStatus.QUEUED,
-            PageRequest.of(0, NotificationSendingService.DEFAULT_BULK_RETRIEVAL_LIMIT)
-        );
-  }
+      notificationSendingService.sendNotificationsToNotify();
 
-  @Test
-  void sendNotificationToNotify_whenNoNotificationPropertySet_thenVerifyDefaultUsed() {
+      then(notificationRepository)
+          .should()
+          .findNotificationsByStatuses(
+              Set.of(NotificationStatus.QUEUED, NotificationStatus.RETRY),
+              PageRequest.of(0, NotificationLibraryConfigurationProperties.DEFAULT_BULK_RETRIEVAL_LIMIT)
+          );
+    }
 
-    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
-        .withNotificationProperties(null)
-        .build();
+    @DisplayName("AND no other custom notification properties are set")
+    @Nested
+    class WhenNoCustomNotificationPropertiesSet {
 
-    notificationSendingService = new NotificationSendingService(
-        transactionManager,
-        notificationRepository,
-        govukNotifyService,
-        libraryConfigurationProperties
-    );
+      @DisplayName("THEN the default library value will be used instead")
+      @Test
+      void sendNotificationToNotify_whenNoNotificationPropertySet_thenVerifyDefaultUsed() {
 
-    notificationSendingService.sendNotificationToNotify();
+        var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+            .withNotificationProperties(null)
+            .build();
 
-    then(notificationRepository)
-        .should()
-        .findNotificationByStatusOrderByRequestedOnAsc(
-            NotificationStatus.QUEUED,
-            PageRequest.of(0, NotificationSendingService.DEFAULT_BULK_RETRIEVAL_LIMIT)
-        );
-  }
-
-  @Test
-  void sendNotificationToNotify_whenBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
-
-    var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
-        .withNotificationRetrievalLimit(42)
-        .build();
-
-    notificationSendingService = new NotificationSendingService(
-        transactionManager,
-        notificationRepository,
-        govukNotifyService,
-        libraryConfigurationProperties
-    );
-
-    notificationSendingService.sendNotificationToNotify();
-
-    then(notificationRepository)
-        .should()
-        .findNotificationByStatusOrderByRequestedOnAsc(
-            NotificationStatus.QUEUED,
-            PageRequest.of(0, 42)
+        notificationSendingService = new NotificationSendingService(
+            transactionManager,
+            notificationRepository,
+            govukNotifyService,
+            libraryConfigurationProperties,
+            FIXED_CLOCK
         );
 
+        notificationSendingService.sendNotificationsToNotify();
+
+        then(notificationRepository)
+            .should()
+            .findNotificationsByStatuses(
+                Set.of(NotificationStatus.QUEUED, NotificationStatus.RETRY),
+                PageRequest.of(0, NotificationLibraryConfigurationProperties.DEFAULT_BULK_RETRIEVAL_LIMIT)
+            );
+      }
+    }
   }
 
-  @Test
-  void sendNotificationToNotify_whenNoNotifications_thenVerifyInteractions() {
+  @DisplayName("WHEN custom bulk retrieval value provided")
+  @Nested
+  class WhenCustomBulkRetrievalSet {
 
-    given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
-        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
-    ))
-        .willReturn(Collections.emptyList());
+    @DisplayName("THEN custom bulk retrieval value used")
+    @Test
+    void sendNotificationToNotify_whenBulkRetrievalPropertySet_thenVerifyDefaultUsed() {
 
-    notificationSendingService.sendNotificationToNotify();
+      var libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder()
+          .withNotificationRetrievalLimit(42)
+          .build();
 
-    then(notificationRepository)
-        .should(never())
-        .saveAll(anySet());
+      notificationSendingService = new NotificationSendingService(
+          transactionManager,
+          notificationRepository,
+          govukNotifyService,
+          libraryConfigurationProperties,
+          FIXED_CLOCK
+      );
+
+      notificationSendingService.sendNotificationsToNotify();
+
+      then(notificationRepository)
+          .should()
+          .findNotificationsByStatuses(
+              Set.of(NotificationStatus.QUEUED, NotificationStatus.RETRY),
+              PageRequest.of(0, 42)
+          );
+    }
   }
 
-  @Test
-  void sendNotificationToNotify_whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties()
-      throws IOException {
+  @DisplayName("WHEN there are no notifications to send")
+  @Nested
+  class WhenNoNotificationsToSend {
 
-    var queuedNotification = NotificationTestUtil.builder()
-        .withType(NotificationType.EMAIL)
-        .withStatus(NotificationStatus.QUEUED)
-        .build();
+    @DisplayName("THEN no notifications updated")
+    @Test
+    void sendNotificationToNotify_whenNoNotifications_thenVerifyInteractions() {
 
-    given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
-        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
-    ))
-        .willReturn(List.of(queuedNotification));
+      givenDatabaseReturnsNoNotifications();
 
-    var fileData = readFileData("notifySendEmailResponse.json");
+      notificationSendingService.sendNotificationsToNotify();
 
-    Response<SendEmailResponse> expectedEmailResponse = Response.successfulResponse(
-        new SendEmailResponse(new String(fileData))
-    );
+      then(notificationRepository)
+          .should(never())
+          .saveAll(anySet());
+    }
+  }
 
-    given(govukNotifyService.sendEmail(queuedNotification))
-        .willReturn(expectedEmailResponse);
+  @DisplayName("WHEN there are notifications to send")
+  @Nested
+  class WhenNotificationsToSend {
 
-    notificationSendingService.sendNotificationToNotify();
+    @DisplayName("AND the email is QUEUED")
+    @Nested
+    class AndEmailStatusIsQueued {
 
-    then(notificationRepository)
-        .should()
-        .save(notificationCaptor.capture());
+      @DisplayName("THEN the email is sent to notify")
+      @Test
+      void whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
 
-    var savedNotification = notificationCaptor.getValue();
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.EMAIL)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .build();
 
-    assertThat(savedNotification)
-        .extracting(
-            Notification::getStatus,
-            Notification::getNotifyNotificationId,
-            Notification::getFailureReason
-        )
-        .containsExactly(
-            NotificationStatus.SENT_TO_NOTIFY,
-            String.valueOf(expectedEmailResponse.successResponseObject().getNotificationId()),
-            null // not failure reason as send request was successful
+        givenDatabaseReturnsNotification(queuedNotification);
+
+        var fileData = readFileData("notifySendEmailResponse.json");
+
+        Response<SendEmailResponse> expectedEmailResponse = Response.successfulResponse(
+            new SendEmailResponse(new String(fileData))
         );
-  }
 
-  @Test
-  void sendNotificationToNotify_whenQueuedSmsNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties()
-      throws IOException {
+        given(govukNotifyService.sendEmail(queuedNotification))
+            .willReturn(expectedEmailResponse);
 
-    var queuedNotification = NotificationTestUtil.builder()
-        .withType(NotificationType.SMS)
-        .withStatus(NotificationStatus.QUEUED)
-        .build();
+        notificationSendingService.sendNotificationsToNotify();
 
-    given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
-        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
-    ))
-        .willReturn(List.of(queuedNotification));
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
 
-    var fileData = readFileData("notifySendSmsResponse.json");
-    Response<SendSmsResponse> expectedSmsResponse = Response.successfulResponse(
-        new SendSmsResponse(new String(fileData))
-    );
+        var savedNotification = notificationCaptor.getValue();
 
-    given(govukNotifyService.sendSms(queuedNotification))
-        .willReturn(expectedSmsResponse);
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt
+            )
+            .containsExactly(
+                NotificationStatus.SENT_TO_NOTIFY,
+                String.valueOf(expectedEmailResponse.successResponseObject().getNotificationId()),
+                FIXED_INSTANT
+            );
 
-    notificationSendingService.sendNotificationToNotify();
+        assertThat(savedNotification)
+            .extracting(Notification::getFailureReason, Notification::getRetryCount, Notification::getLastFailedAt)
+            .containsOnlyNulls();
+      }
+    }
 
-    then(notificationRepository)
-        .should()
-        .save(notificationCaptor.capture());
+    @DisplayName("AND the email is RETRY")
+    @Nested
+    class AndEmailStatusIsRetry {
 
-    var savedNotification = notificationCaptor.getValue();
+      @DisplayName("THEN the email is sent to notify for its first retry attempt")
+      @Test
+      void whenFirstRetryEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
 
-    assertThat(savedNotification)
-        .extracting(
-            Notification::getStatus,
-            Notification::getNotifyNotificationId,
-            Notification::getFailureReason
-        )
-        .containsExactly(
-            NotificationStatus.SENT_TO_NOTIFY,
-            String.valueOf(expectedSmsResponse.successResponseObject().getNotificationId()),
-            null // not failure reason as send request was successful
+        Instant yesterday = FIXED_CLOCK.instant().minus(1, ChronoUnit.DAYS);
+
+        var retryNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.EMAIL)
+            .withStatus(NotificationStatus.RETRY)
+            .withRetryCount(0)
+            .withLastSendAttemptAt(yesterday)
+            .withLastFailedAt(yesterday)
+            .build();
+
+        givenDatabaseReturnsNotification(retryNotification);
+
+        var fileData = readFileData("notifySendEmailResponse.json");
+
+        Response<SendEmailResponse> expectedEmailResponse = Response.successfulResponse(
+            new SendEmailResponse(new String(fileData))
         );
+
+        given(govukNotifyService.sendEmail(retryNotification))
+            .willReturn(expectedEmailResponse);
+
+        notificationSendingService.sendNotificationsToNotify();
+
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
+
+        var savedNotification = notificationCaptor.getValue();
+
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getFailureReason,
+                Notification::getRetryCount,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.SENT_TO_NOTIFY,
+                String.valueOf(expectedEmailResponse.successResponseObject().getNotificationId()),
+                FIXED_INSTANT,
+                null, // not failure reason as send request was successful
+                1, // as successfully sent again the retry count is incremented by 1,
+                yesterday
+            );
+      }
+
+      @DisplayName("THEN the email is sent to notify for its next retry attempt")
+      @Test
+      void whenSecondRetryEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
+
+        Instant yesterday = FIXED_CLOCK.instant().minus(1, ChronoUnit.DAYS);
+
+        var retryNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.EMAIL)
+            .withStatus(NotificationStatus.RETRY)
+            .withRetryCount(1)
+            .withLastSendAttemptAt(yesterday)
+            .withLastFailedAt(yesterday)
+            .build();
+
+        givenDatabaseReturnsNotification(retryNotification);
+
+        var fileData = readFileData("notifySendEmailResponse.json");
+
+        Response<SendEmailResponse> expectedEmailResponse = Response.successfulResponse(
+            new SendEmailResponse(new String(fileData))
+        );
+
+        given(govukNotifyService.sendEmail(retryNotification))
+            .willReturn(expectedEmailResponse);
+
+        notificationSendingService.sendNotificationsToNotify();
+
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
+
+        var savedNotification = notificationCaptor.getValue();
+
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getFailureReason,
+                Notification::getRetryCount,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.SENT_TO_NOTIFY,
+                String.valueOf(expectedEmailResponse.successResponseObject().getNotificationId()),
+                FIXED_INSTANT,
+                null, // not failure reason as send request was successful
+                2, // as successfully sent again the retry count is incremented by 1
+                yesterday
+            );
+      }
+    }
+
+    @DisplayName("AND the sms is QUEUED")
+    @Nested
+    class AndSmsStatusIsQueued {
+
+      @DisplayName("THEN the sms is sent to notify")
+      @Test
+      void whenQueuedSmsNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
+
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.SMS)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .build();
+
+        givenDatabaseReturnsNotification(queuedNotification);
+
+        var fileData = readFileData("notifySendSmsResponse.json");
+
+        Response<SendSmsResponse> expectedSmsResponse = Response.successfulResponse(
+            new SendSmsResponse(new String(fileData))
+        );
+
+        given(govukNotifyService.sendSms(queuedNotification))
+            .willReturn(expectedSmsResponse);
+
+        notificationSendingService.sendNotificationsToNotify();
+
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
+
+        var savedNotification = notificationCaptor.getValue();
+
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt
+            )
+            .containsExactly(
+                NotificationStatus.SENT_TO_NOTIFY,
+                String.valueOf(expectedSmsResponse.successResponseObject().getNotificationId()),
+                FIXED_INSTANT
+            );
+
+        assertThat(savedNotification)
+            .extracting(Notification::getFailureReason, Notification::getRetryCount, Notification::getLastFailedAt)
+            .containsOnlyNulls();
+      }
+    }
+
+    @DisplayName("AND the sms is RETRY")
+    @Nested
+    class AndSmsStatusIsRetry {
+
+      @DisplayName("THEN the sms is sent to notify for its first retry attempt")
+      @Test
+      void whenFirstRetrySmsNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
+
+        Instant yesterday = FIXED_CLOCK.instant().minus(1, ChronoUnit.DAYS);
+
+        var retryNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.SMS)
+            .withStatus(NotificationStatus.RETRY)
+            .withLastSendAttemptAt(yesterday)
+            .withRetryCount(0)
+            .withLastFailedAt(yesterday)
+            .build();
+
+        givenDatabaseReturnsNotification(retryNotification);
+
+        var fileData = readFileData("notifySendSmsResponse.json");
+
+        Response<SendSmsResponse> expectedSmsResponse = Response.successfulResponse(
+            new SendSmsResponse(new String(fileData))
+        );
+
+        given(govukNotifyService.sendSms(retryNotification))
+            .willReturn(expectedSmsResponse);
+
+        notificationSendingService.sendNotificationsToNotify();
+
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
+
+        var savedNotification = notificationCaptor.getValue();
+
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getFailureReason,
+                Notification::getRetryCount,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.SENT_TO_NOTIFY,
+                String.valueOf(expectedSmsResponse.successResponseObject().getNotificationId()),
+                FIXED_INSTANT,
+                null, // not failure reason as send request was successful
+                1, // as successfully sent again the retry count is incremented by 1
+                yesterday
+            );
+      }
+
+      @DisplayName("THEN the sms is sent to notify for its next retry attempt")
+      @Test
+      void whenSecondRetrySmsNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
+
+        Instant yesterday = FIXED_CLOCK.instant().minus(1, ChronoUnit.DAYS);
+
+        var retryNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.SMS)
+            .withStatus(NotificationStatus.RETRY)
+            .withLastSendAttemptAt(yesterday)
+            .withRetryCount(1)
+            .withLastFailedAt(yesterday)
+            .build();
+
+        givenDatabaseReturnsNotification(retryNotification);
+
+        var fileData = readFileData("notifySendSmsResponse.json");
+
+        Response<SendSmsResponse> expectedSmsResponse = Response.successfulResponse(
+            new SendSmsResponse(new String(fileData))
+        );
+
+        given(govukNotifyService.sendSms(retryNotification))
+            .willReturn(expectedSmsResponse);
+
+        notificationSendingService.sendNotificationsToNotify();
+
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
+
+        var savedNotification = notificationCaptor.getValue();
+
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getFailureReason,
+                Notification::getRetryCount,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.SENT_TO_NOTIFY,
+                String.valueOf(expectedSmsResponse.successResponseObject().getNotificationId()),
+                FIXED_INSTANT,
+                null, // not failure reason as send request was successful
+                2, // as successfully sent again the retry count is incremented by 1
+                yesterday
+            );
+      }
+    }
   }
 
-  @ParameterizedTest
-  @ValueSource(ints = {403, 400})
-  void sendNotificationToNotify_whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(
-      int permanentErrorHttpStatus
-  ) {
+  @DisplayName("WHEN notify responds with a permanent client error")
+  @Nested
+  class WhenPermanentErrorFromNotify {
 
-    var queuedNotification = NotificationTestUtil.builder()
-        .withType(NotificationType.EMAIL)
-        .withStatus(NotificationStatus.QUEUED)
-        .build();
+    @DisplayName("AND we have an email notification")
+    @Nested
+    class AndEmailNotification {
 
-    given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
-        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
-    ))
-        .willReturn(List.of(queuedNotification));
+      @ParameterizedTest(name = "THEN the email is set to FAILED_NOT_SENT when a {0} response is returned from notify")
+      @ValueSource(ints = {403, 400})
+      void whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(int permanentErrorHttpStatus) {
 
-    given(govukNotifyService.sendEmail(queuedNotification))
-        .willReturn(Response.failedResponse(permanentErrorHttpStatus, "error-message"));
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.EMAIL)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .build();
 
-    notificationSendingService.sendNotificationToNotify();
+        givenDatabaseReturnsNotification(queuedNotification);
 
-    then(notificationRepository)
-        .should()
-        .save(notificationCaptor.capture());
+        given(govukNotifyService.sendEmail(queuedNotification))
+            .willReturn(Response.failedResponse(permanentErrorHttpStatus, "error-message"));
 
-    var savedNotification = notificationCaptor.getValue();
+        notificationSendingService.sendNotificationsToNotify();
 
-    assertThat(savedNotification)
-        .extracting(Notification::getStatus, Notification::getNotifyNotificationId)
-        .containsExactly(NotificationStatus.FAILED_NOT_SENT, null);
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
 
-    assertThat(savedNotification.getFailureReason()).isNotNull();
+        var savedNotification = notificationCaptor.getValue();
+
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.FAILED_NOT_SENT,
+                null, // no notification ID from notify as we never successfully sent
+                FIXED_INSTANT,
+                FIXED_INSTANT
+            );
+
+        assertThat(savedNotification.getFailureReason()).isNotNull();
+      }
+    }
+
+    @DisplayName("AND we have an sms notification")
+    @Nested
+    class AndSmsNotification {
+
+      @ParameterizedTest(name = "THEN the sms is set to FAILED_NOT_SENT when a {0} response is returned from notify")
+      @ValueSource(ints = {403, 400})
+      void whenSmsNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(int permanentErrorHttpStatus) {
+
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.SMS)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .build();
+
+        givenDatabaseReturnsNotification(queuedNotification);
+
+        given(govukNotifyService.sendSms(queuedNotification))
+            .willReturn(Response.failedResponse(permanentErrorHttpStatus, "error-message"));
+
+        notificationSendingService.sendNotificationsToNotify();
+
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
+
+        var savedNotification = notificationCaptor.getValue();
+
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.FAILED_NOT_SENT,
+                null, // no notification ID from notify as we never successfully sent
+                FIXED_INSTANT,
+                FIXED_INSTANT
+            );
+
+        assertThat(savedNotification.getFailureReason()).isNotNull();
+      }
+    }
   }
 
-  @Test
-  void sendNotificationToNotify_whenEmailNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
+  @DisplayName("WHEN notify responds with a temporary client error")
+  @Nested
+  class WhenTemporaryErrorFromNotify {
 
-    var queuedNotification = NotificationTestUtil.builder()
-        .withType(NotificationType.EMAIL)
-        .withStatus(NotificationStatus.QUEUED)
-        .build();
+    @DisplayName("AND we have an email notification")
+    @Nested
+    class AndEmailNotification {
 
-    given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
-        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
-    ))
-        .willReturn(List.of(queuedNotification));
+      @DisplayName("THEN the email is set to FAILED_TO_SEND_TO_NOTIFY")
+      @Test
+      void whenEmailNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
 
-    given(govukNotifyService.sendEmail(queuedNotification))
-        .willReturn(Response.failedResponse(500, "error-message"));
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.EMAIL)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .build();
 
-    notificationSendingService.sendNotificationToNotify();
+        givenDatabaseReturnsNotification(queuedNotification);
 
-    then(notificationRepository)
-        .should()
-        .save(notificationCaptor.capture());
+        given(govukNotifyService.sendEmail(queuedNotification))
+            .willReturn(Response.failedResponse(500, "error-message"));
 
-    var savedNotification = notificationCaptor.getValue();
+        notificationSendingService.sendNotificationsToNotify();
 
-    assertThat(savedNotification)
-        .extracting(Notification::getStatus, Notification::getNotifyNotificationId)
-        .containsExactly(NotificationStatus.TEMPORARY_FAILURE, null);
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
 
-    assertThat(savedNotification.getFailureReason()).isNotNull();
-  }
+        var savedNotification = notificationCaptor.getValue();
 
-  @ParameterizedTest
-  @ValueSource(ints = {403, 400})
-  void sendNotificationToNotify_whenSmsNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(
-      int permanentErrorHttpStatus
-  ) {
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.FAILED_TO_SEND_TO_NOTIFY,
+                null, // no notification ID from notify as we never successfully sent
+                FIXED_INSTANT,
+                FIXED_INSTANT
+            );
 
-    var queuedNotification = NotificationTestUtil.builder()
-        .withType(NotificationType.SMS)
-        .withStatus(NotificationStatus.QUEUED)
-        .build();
+        assertThat(savedNotification.getFailureReason()).isNotNull();
+      }
+    }
 
-    given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
-        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
-    ))
-        .willReturn(List.of(queuedNotification));
+    @DisplayName("AND we have an sms notification")
+    @Nested
+    class AndSmsNotification {
 
-    given(govukNotifyService.sendSms(queuedNotification))
-        .willReturn(Response.failedResponse(permanentErrorHttpStatus, "error-message"));
+      @DisplayName("THEN the sms is set to FAILED_TO_SEND_TO_NOTIFY")
+      @Test
+      void whenSmsNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
 
-    notificationSendingService.sendNotificationToNotify();
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.SMS)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .build();
 
-    then(notificationRepository)
-        .should()
-        .save(notificationCaptor.capture());
+        givenDatabaseReturnsNotification(queuedNotification);
 
-    var savedNotification = notificationCaptor.getValue();
+        given(govukNotifyService.sendSms(queuedNotification))
+            .willReturn(Response.failedResponse(500, "error-message"));
 
-    assertThat(savedNotification)
-        .extracting(Notification::getStatus, Notification::getNotifyNotificationId)
-        .containsExactly(NotificationStatus.FAILED_NOT_SENT, null);
+        notificationSendingService.sendNotificationsToNotify();
 
-    assertThat(savedNotification.getFailureReason()).isNotNull();
-  }
+        then(notificationRepository)
+            .should()
+            .save(notificationCaptor.capture());
 
-  @Test
-  void sendNotificationToNotify_whenSmsNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() {
+        var savedNotification = notificationCaptor.getValue();
 
-    var queuedNotification = NotificationTestUtil.builder()
-        .withType(NotificationType.SMS)
-        .withStatus(NotificationStatus.QUEUED)
-        .build();
+        assertThat(savedNotification)
+            .extracting(
+                Notification::getStatus,
+                Notification::getNotifyNotificationId,
+                Notification::getLastSendAttemptAt,
+                Notification::getLastFailedAt
+            )
+            .containsExactly(
+                NotificationStatus.FAILED_TO_SEND_TO_NOTIFY,
+                null, // no notification ID from notify as we never successfully sent
+                FIXED_INSTANT,
+                FIXED_INSTANT
+            );
 
-    given(notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
-        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
-    ))
-        .willReturn(List.of(queuedNotification));
-
-    given(govukNotifyService.sendSms(queuedNotification))
-        .willReturn(Response.failedResponse(500, "error-message"));
-
-    notificationSendingService.sendNotificationToNotify();
-
-    then(notificationRepository)
-        .should()
-        .save(notificationCaptor.capture());
-
-    var savedNotification = notificationCaptor.getValue();
-
-    assertThat(savedNotification)
-        .extracting(Notification::getStatus, Notification::getNotifyNotificationId)
-        .containsExactly(NotificationStatus.TEMPORARY_FAILURE, null);
-
-    assertThat(savedNotification.getFailureReason()).isNotNull();
+        assertThat(savedNotification.getFailureReason()).isNotNull();
+      }
+    }
   }
 
   private byte[] readFileData(String resourceName) throws IOException {
@@ -389,5 +713,21 @@ class NotificationSendingServiceTest {
         "classpath:uk/co/fivium/digitalnotificationlibrary/core/notification/notify/" + resourceName
     );
     return Files.readAllBytes(file.toPath());
+  }
+
+  private void givenDatabaseReturnsNotifications(List<Notification> notifications) {
+    given(notificationRepository.findNotificationsByStatuses(
+        Set.of(NotificationStatus.QUEUED, NotificationStatus.RETRY),
+        PageRequest.of(0, BULK_RETRIEVAL_SIZE)
+    ))
+        .willReturn(notifications);
+  }
+
+  private void givenDatabaseReturnsNotification(Notification notification) {
+    givenDatabaseReturnsNotifications(List.of(notification));
+  }
+
+  private void givenDatabaseReturnsNoNotifications() {
+    givenDatabaseReturnsNotifications(Collections.emptyList());
   }
 }

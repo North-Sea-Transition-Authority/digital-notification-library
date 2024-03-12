@@ -165,7 +165,7 @@ class NotificationLibraryClientTest {
   }
 
   @ParameterizedTest
-  @EnumSource(value = TemplateType.class, mode = EnumSource.Mode.EXCLUDE, names = "EMAIL")
+  @EnumSource(value = TemplateType.class, mode = EnumSource.Mode.EXCLUDE, names = {"EMAIL", "UNKNOWN"})
   void sendEmail_whenTemplateTypeIsNotEmail_thenException(TemplateType nonEmailTemplateType) {
 
     var nonEmailTemplate = TemplateTestUtil.builder()
@@ -187,7 +187,9 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("Cannot send an email with template of type %s".formatted(nonEmailTemplateType));
+        .hasMessage("Cannot send an email for template with ID %s and type %s"
+            .formatted(mergedTemplate.getTemplate().notifyTemplateId(), nonEmailTemplateType)
+        );
 
     // without log correlation ID
     assertThatThrownBy(
@@ -198,7 +200,9 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("Cannot send an email with template of type %s".formatted(nonEmailTemplateType));
+        .hasMessage("Cannot send an email for template with ID %s and type %s"
+            .formatted(mergedTemplate.getTemplate().notifyTemplateId(), nonEmailTemplateType)
+        );
   }
 
   @ParameterizedTest
@@ -220,7 +224,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("EmailRecipient must not be null or empty");
+        .hasMessage("EmailRecipient must not be null or empty for notification with correlation ID log-correlation-id");
 
     // without log correlation ID
     assertThatThrownBy(
@@ -231,7 +235,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("EmailRecipient must not be null or empty");
+        .hasMessage("EmailRecipient must not be null or empty for notification with correlation ID null");
   }
 
   @Test
@@ -252,7 +256,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("EmailRecipient must not be null or empty");
+        .hasMessage("EmailRecipient must not be null or empty for notification with correlation ID log-correlation-id");
 
     // without log correlation ID
     assertThatThrownBy(
@@ -263,7 +267,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("EmailRecipient must not be null or empty");
+        .hasMessage("EmailRecipient must not be null or empty for notification with correlation ID null");
   }
 
   @Test
@@ -284,7 +288,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("DomainReference must not be null");
+        .hasMessage("DomainReference must not be null for notification with correlation ID log-correlation-id");
 
     // without log correlation ID
     assertThatThrownBy(
@@ -295,7 +299,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("DomainReference must not be null");
+        .hasMessage("DomainReference must not be null for notification with correlation ID null");
   }
 
   @Test
@@ -340,7 +344,8 @@ class NotificationLibraryClientTest {
             Notification::getNotifyTemplateId,
             Notification::getRequestedOn,
             Notification::getLogCorrelationId,
-            Notification::getNotifyStatus
+            Notification::getNotifyStatus,
+            Notification::getRetryCount
         )
         .containsExactly(
             NotificationStatus.QUEUED,
@@ -351,7 +356,8 @@ class NotificationLibraryClientTest {
             template.notifyTemplateId(),
             FIXED_INSTANT,
             logCorrelationId,
-            null // not sent to notify so no status set
+            null, // not sent to notify so no status set
+            0 // default retry count
         );
 
     assertThat(savedNotification.getMailMergeFields())
@@ -401,7 +407,8 @@ class NotificationLibraryClientTest {
             Notification::getDomainReferenceType,
             Notification::getNotifyTemplateId,
             Notification::getRequestedOn,
-            Notification::getNotifyStatus
+            Notification::getNotifyStatus,
+            Notification::getRetryCount
         )
         .containsExactly(
             null, // log correlation id
@@ -412,7 +419,8 @@ class NotificationLibraryClientTest {
             domainReference.getType(),
             template.notifyTemplateId(),
             FIXED_INSTANT,
-            null // not sent to notify so no status set
+            null, // not sent to notify so no status set
+            0 // default retry count
         );
 
     assertThat(savedNotification.getMailMergeFields())
@@ -456,7 +464,7 @@ class NotificationLibraryClientTest {
   }
 
   @ParameterizedTest
-  @EnumSource(value = TemplateType.class, mode = EnumSource.Mode.EXCLUDE, names = "SMS")
+  @EnumSource(value = TemplateType.class, mode = EnumSource.Mode.EXCLUDE, names = {"SMS", "UNKNOWN"})
   void sendSms_whenTemplateTypeIsNotEmail_thenException(TemplateType nonSmsTemplateType) {
 
     var nonEmailTemplate = TemplateTestUtil.builder()
@@ -478,7 +486,9 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("Cannot send an sms with template of type %s".formatted(nonSmsTemplateType));
+        .hasMessage("Cannot send an sms for template with ID %s and type %s"
+            .formatted(mergedTemplate.getTemplate().notifyTemplateId(), nonSmsTemplateType)
+        );
 
     // without log correlation ID
     assertThatThrownBy(
@@ -489,7 +499,9 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("Cannot send an sms with template of type %s".formatted(nonSmsTemplateType));
+        .hasMessage("Cannot send an sms for template with ID %s and type %s"
+            .formatted(mergedTemplate.getTemplate().notifyTemplateId(), nonSmsTemplateType)
+        );
   }
 
   @ParameterizedTest
@@ -511,7 +523,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("SmsRecipient must not be null or empty");
+        .hasMessage("SmsRecipient must not be null or empty for notification with correlation ID log-correlation-id");
 
     // without log correlation ID
     assertThatThrownBy(
@@ -522,7 +534,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("SmsRecipient must not be null or empty");
+        .hasMessage("SmsRecipient must not be null or empty for notification with correlation ID null");
   }
 
   @Test
@@ -543,7 +555,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("SmsRecipient must not be null or empty");
+        .hasMessage("SmsRecipient must not be null or empty for notification with correlation ID log-correlation-id");
 
     // without log correlation ID
     assertThatThrownBy(
@@ -554,7 +566,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("SmsRecipient must not be null or empty");
+        .hasMessage("SmsRecipient must not be null or empty for notification with correlation ID null");
   }
 
   @Test
@@ -575,7 +587,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("DomainReference must not be null");
+        .hasMessage("DomainReference must not be null for notification with correlation ID log-correlation-id");
 
     // without log correlation ID
     assertThatThrownBy(
@@ -586,7 +598,7 @@ class NotificationLibraryClientTest {
         )
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
-        .hasMessage("DomainReference must not be null");
+        .hasMessage("DomainReference must not be null for notification with correlation ID null");
   }
 
   @Test
@@ -631,7 +643,8 @@ class NotificationLibraryClientTest {
             Notification::getNotifyTemplateId,
             Notification::getRequestedOn,
             Notification::getLogCorrelationId,
-            Notification::getNotifyStatus
+            Notification::getNotifyStatus,
+            Notification::getRetryCount
         )
         .containsExactly(
             NotificationStatus.QUEUED,
@@ -642,7 +655,8 @@ class NotificationLibraryClientTest {
             template.notifyTemplateId(),
             FIXED_INSTANT,
             logCorrelationId,
-            null // not sent to notify so no status set
+            null, // not sent to notify so no status set
+            0 // default retry count
         );
 
     assertThat(savedNotification.getMailMergeFields())
@@ -692,7 +706,8 @@ class NotificationLibraryClientTest {
             Notification::getDomainReferenceType,
             Notification::getNotifyTemplateId,
             Notification::getRequestedOn,
-            Notification::getNotifyStatus
+            Notification::getNotifyStatus,
+            Notification::getRetryCount
         )
         .containsExactly(
             null, // log correlation id
@@ -703,7 +718,8 @@ class NotificationLibraryClientTest {
             domainReference.getType(),
             template.notifyTemplateId(),
             FIXED_INSTANT,
-            null // not sent to notify so no status set
+            null, // not sent to notify so no status set
+            0 // default retry count
         );
 
     assertThat(savedNotification.getMailMergeFields())

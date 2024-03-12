@@ -1,7 +1,8 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
+import java.time.Clock;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
@@ -22,8 +23,6 @@ class NotificationSendingService {
 
   private static final String NOTIFICATION_FAILURE_REASON_MESSAGE_FORMAT = "%s - GOV.UK Notify exception %s";
 
-  static final int DEFAULT_BULK_RETRIEVAL_LIMIT = 100;
-
   private final TransactionTemplate transactionTemplate;
 
   private final NotificationLibraryNotificationRepository notificationRepository;
@@ -32,37 +31,50 @@ class NotificationSendingService {
 
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
+  private final Clock clock;
+
   @Autowired
   NotificationSendingService(PlatformTransactionManager transactionManager,
                              NotificationLibraryNotificationRepository notificationRepository,
                              GovukNotifySender govukNotifySender,
-                             NotificationLibraryConfigurationProperties libraryConfigurationProperties) {
+                             NotificationLibraryConfigurationProperties libraryConfigurationProperties,
+                             Clock clock) {
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.notificationRepository = notificationRepository;
     this.govukNotifySender = govukNotifySender;
     this.libraryConfigurationProperties = libraryConfigurationProperties;
+    this.clock = clock;
   }
 
-  void sendNotificationToNotify() {
+  void sendNotificationsToNotify() {
 
-    LOGGER.debug("Polling notifications with status {} to send to notify", NotificationStatus.QUEUED);
+    LOGGER.debug(
+        "Polling notifications with statuses [{}, {}] to send to notify",
+        NotificationStatus.QUEUED, NotificationStatus.RETRY
+    );
 
-    var bulkRetrievalLimit = getBulkRetrievalLimit();
+    var bulkRetrievalLimit = libraryConfigurationProperties.getBulkRetrievalLimit();
 
-    List<Notification> queuedNotifications = notificationRepository.findNotificationByStatusOrderByRequestedOnAsc(
-        NotificationStatus.QUEUED,
+    List<Notification> notificationsToSend = notificationRepository.findNotificationsByStatuses(
+        Set.of(NotificationStatus.QUEUED, NotificationStatus.RETRY),
         PageRequest.of(0, bulkRetrievalLimit)
     );
 
-    queuedNotifications.forEach(queuedNotification ->
+    notificationsToSend.forEach(notificationToSend ->
         transactionTemplate.executeWithoutResult(status -> {
-          var notification = sendNotification(queuedNotification);
+          var notification = sendNotification(notificationToSend);
           notificationRepository.save(notification);
         })
     );
   }
 
   private Notification sendNotification(Notification notification) {
+
+    if (NotificationStatus.RETRY.equals(notification.getStatus())) {
+      notification.setRetryCount(notification.getRetryCount() + 1);
+    }
+
+    notification.setLastSendAttemptAt(clock.instant());
 
     switch (notification.getType()) {
       case EMAIL -> {
@@ -127,13 +139,14 @@ class NotificationSendingService {
 
       LOGGER.info(errorMessage);
 
-      notificationStatus = NotificationStatus.TEMPORARY_FAILURE;
+      notificationStatus = NotificationStatus.FAILED_TO_SEND_TO_NOTIFY;
       failureReason = NOTIFICATION_FAILURE_REASON_MESSAGE_FORMAT.formatted(errorMessage, response.message());
     }
 
     notification.setStatus(notificationStatus);
     notification.setFailureReason(failureReason);
     notification.setNotifyNotificationId(null);
+    notification.setLastFailedAt(clock.instant());
   }
 
   private void setPropertiesForSentToGovukNotify(Notification notification, UUID notifyNotificationId) {
@@ -148,14 +161,5 @@ class NotificationSendingService {
 
   private boolean isBadRequestResponse(Response.ErrorResponse response) {
     return response.httpStatus() == HttpStatus.SC_BAD_REQUEST;
-  }
-
-  private int getBulkRetrievalLimit() {
-
-    var notificationProperties = libraryConfigurationProperties.notification();
-
-    return notificationProperties != null
-        ? Optional.ofNullable(notificationProperties.bulkRetrievalLimit()).orElse(DEFAULT_BULK_RETRIEVAL_LIMIT)
-        : DEFAULT_BULK_RETRIEVAL_LIMIT;
   }
 }

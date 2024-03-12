@@ -4,6 +4,8 @@ import java.util.concurrent.TimeUnit;
 import net.javacrumbs.shedlock.core.LockAssert;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -12,11 +14,17 @@ import org.springframework.stereotype.Component;
 @EnableSchedulerLock(defaultLockAtMostFor = "10m")
 class NotificationProcessor {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(NotificationProcessor.class);
+
   private final NotificationSendingService notificationSendingService;
 
+  private final NotificationStatusUpdateService notificationStatusUpdateService;
+
   @Autowired
-  NotificationProcessor(NotificationSendingService notificationSendingService) {
+  NotificationProcessor(NotificationSendingService notificationSendingService,
+                        NotificationStatusUpdateService notificationStatusUpdateService) {
     this.notificationSendingService = notificationSendingService;
+    this.notificationStatusUpdateService = notificationStatusUpdateService;
   }
 
   @Scheduled(
@@ -25,8 +33,14 @@ class NotificationProcessor {
   )
   @SchedulerLock(name = "NotificationScheduler_processNotifications")
   void processNotifications() {
+
+    LOGGER.debug("Starting scheduled processing of notifications");
+
     LockAssert.assertLocked();
-    // TODO: poll notify for status updates before sending notifications again
-    notificationSendingService.sendNotificationToNotify();
+
+    notificationStatusUpdateService.updateNotificationStatuses();
+    notificationSendingService.sendNotificationsToNotify();
+
+    LOGGER.debug("Finished scheduled processing of notifications");
   }
 }

@@ -12,10 +12,12 @@ import org.springframework.test.annotation.DirtiesContext;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest(classes = TestApplication.class)
 @Import(IntegrationTestConfiguration.class)
-// There seems to be an issue relating to spring not stopping the
-// scheduler between test class runs. Adding this to enforce a tear down
-// to avoid the wrong GovukNotifySender bean getting included when the library
-// mode changes.
+// There seems to be an issue when changing application properties that
+// change the mode the library runs in. The @Scheduled job in the NotificationProcessor bean
+// seems to run with the production mode bean then on the next iteration run with the test mode bean.
+// As a result you can ge inconsistent failures if the wrong bean is used on that iteration.
+// Some further investigation will need to be done as to why this is happening and how we can remove the context
+// rest after each test class
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-public @interface IntegrationTest {
+@interface IntegrationTest {
 }

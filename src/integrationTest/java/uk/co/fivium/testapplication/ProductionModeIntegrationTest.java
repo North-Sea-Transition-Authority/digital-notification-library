@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,11 +44,8 @@ class ProductionModeIntegrationTest extends AbstractIntegrationTest {
           logCorrelationId
       );
 
-      long notificationPollTimeSeconds = libraryConfigurationProperties.notification().pollTimeSeconds();
-
       await()
-          .during(Duration.ofSeconds(2 * notificationPollTimeSeconds))
-          .atMost(Duration.ofSeconds(20))
+          .atMost(getNotificationPollDuration().multipliedBy(5))
           .untilAsserted(() -> {
 
             List<Notification> deliveredNotifyNotifications = getNotifications(logCorrelationId);
@@ -87,11 +83,8 @@ class ProductionModeIntegrationTest extends AbstractIntegrationTest {
           logCorrelationId
       );
 
-      long notificationPollTimeSeconds = libraryConfigurationProperties.notification().pollTimeSeconds();
-
       await()
-          .during(Duration.ofSeconds(2 * notificationPollTimeSeconds))
-          .atMost(Duration.ofSeconds(20))
+          .atMost(getNotificationPollDuration().multipliedBy(5))
           .untilAsserted(() -> {
 
             List<Notification> deliveredNotifyNotifications = getNotifications(logCorrelationId);

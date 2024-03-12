@@ -2,6 +2,7 @@ package uk.co.fivium.digitalnotificationlibrary.configuration;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -25,6 +26,9 @@ public record NotificationLibraryConfigurationProperties(@NotNull GovukNotify go
                                                          Notification notification,
                                                          @NotNull NotificationMode mode,
                                                          TestMode testMode) implements Validator {
+
+  /** The default library notification bulk retrieval limit. */
+  public static final int DEFAULT_BULK_RETRIEVAL_LIMIT = 100;
 
   /**
    * The configuration for interactions between the library and GOV.UK notify.
@@ -84,5 +88,17 @@ public record NotificationLibraryConfigurationProperties(@NotNull GovukNotify go
           "You must set test email and sms recipients when in test mode"
       );
     }
+  }
+
+  /**
+   * Method to get specified bulk retrieval limit for notifications. This is either consumer provided or defaulted
+   * within the library. This is used when sending and updating notifications and should not be used by the consumers.
+   * @return the consumer provide retrieval limit or the default library limit if one is not provided
+   */
+  public int getBulkRetrievalLimit() {
+
+    return notification() != null
+        ? Optional.ofNullable(notification().bulkRetrievalLimit()).orElse(DEFAULT_BULK_RETRIEVAL_LIMIT)
+        : DEFAULT_BULK_RETRIEVAL_LIMIT;
   }
 }

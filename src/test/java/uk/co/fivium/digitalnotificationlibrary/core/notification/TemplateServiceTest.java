@@ -44,7 +44,7 @@ class TemplateServiceTest {
     }
   }
 
-  @DisplayName("WHEN we gan a failure response from notify")
+  @DisplayName("WHEN we get a failure response from notify")
   @Nested
   class WhenFailureNotifyResponse {
 

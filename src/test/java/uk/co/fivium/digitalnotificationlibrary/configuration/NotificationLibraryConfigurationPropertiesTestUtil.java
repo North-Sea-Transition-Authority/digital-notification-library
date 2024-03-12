@@ -15,7 +15,7 @@ public class NotificationLibraryConfigurationPropertiesTestUtil {
 
   public static class Builder {
 
-    private final Integer notificationPollTimeSeconds = 10;
+    private Integer notificationPollTimeSeconds = 10;
 
     private Integer notificationBulkRetrievalLimit = 5;
 
@@ -44,6 +44,11 @@ public class NotificationLibraryConfigurationPropertiesTestUtil {
 
     public Builder withNotificationRetrievalLimit(Integer notificationBulkRetrievalLimit) {
       this.notificationBulkRetrievalLimit = notificationBulkRetrievalLimit;
+      return this;
+    }
+
+    public Builder withNotificationPollTimeSeconds(Integer notificationPollTimeSeconds) {
+      this.notificationPollTimeSeconds = notificationPollTimeSeconds;
       return this;
     }
 
