@@ -76,7 +76,7 @@ dependencies {
     integrationTestRuntimeOnly 'org.postgresql:postgresql:42.6.0'
 
     // the library under test
-    integrationTestImplementation 'uk.co.fivium:spring-boot-starter-digital-notification-library:integration-test'
+    integrationTestImplementation 'uk.co.fivium:digital-notification-library-spring-boot-starter:integration-test'
 
     // spring starter dependencies
     integrationTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'

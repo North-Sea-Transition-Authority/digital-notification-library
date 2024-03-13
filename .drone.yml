@@ -112,7 +112,7 @@ steps:
       NEXUS_PASSWORD:
         from_secret: nexus_password
     commands:
-      - export MAVEN_PUBLICATION_VERSION=$(echo $DRONE_TAG | cut -d'/' -f2)
+      - export MAVEN_PUBLICATION_VERSION=$DRONE_TAG
       - echo $MAVEN_PUBLICATION_VERSION
       - ./gradlew publishMavenPublicationToReleasesRepository
     when:

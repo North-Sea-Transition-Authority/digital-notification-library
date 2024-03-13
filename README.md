@@ -81,7 +81,7 @@ Check the [releases](https://github.com/Fivium/digital-notification-library/rele
 of the library. Once you have found the version you want to use add the following to your gradle file.
 
 ```groovy
-implementation 'uk.co.fivium:spring-boot-starter-digital-notification-library:<version>'
+implementation 'uk.co.fivium:digital-notification-library-spring-boot-starter:<version>'
 ```
 
 If you don't already have the Fivium nexus repository added to your `repositories` list then this should be added as per
