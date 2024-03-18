@@ -204,8 +204,7 @@ application version ID and the domain type being `APPLICATION_VERSION`.
 #### Mail merge fields
 
 Once you have a template you can call the `.withMailMergeField()` method to add mail merge fields to the template. You
-can call this method as many times as you need to add mail merge fields. Alternatively, you can call the 
-`withMailMergeFields()` method and provide a collection of `MailMerge` fields in bulk.
+can call this method as many times as you need to add mail merge fields.
 
 ```java
 MergedTemplate mergedTemplate = notificationLibraryClient.getTemplate("notify template ID")

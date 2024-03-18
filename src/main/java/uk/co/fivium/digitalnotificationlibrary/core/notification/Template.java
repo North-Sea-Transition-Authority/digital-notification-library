@@ -35,19 +35,9 @@ public record Template(
    * @param value The value of the mail merge field
    * @return A merged template builder
    */
-  public MergedTemplate.MergedTemplateBuilder withMailMergeField(String key, String value) {
+  public MergedTemplate.MergedTemplateBuilder withMailMergeField(String key, Object value) {
     return new MergedTemplate.MergedTemplateBuilder(this)
         .withMailMergeField(key, value);
-  }
-
-  /**
-   * Add a collection of mail merge fields to the template.
-   * @param mailMergeFields The mail merge fields to add to the template
-   * @return A merged template builder
-   */
-  public MergedTemplate.MergedTemplateBuilder withMailMergeFields(Set<MailMergeField> mailMergeFields) {
-    return new MergedTemplate.MergedTemplateBuilder(this)
-        .withMailMergeFields(mailMergeFields);
   }
 
   static Template createUnconfirmedTemplate(String notifyTemplateId) {
