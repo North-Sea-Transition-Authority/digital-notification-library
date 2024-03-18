@@ -30,6 +30,9 @@ public record NotificationLibraryConfigurationProperties(@NotNull GovukNotify go
   /** The default library notification bulk retrieval limit. */
   public static final int DEFAULT_BULK_RETRIEVAL_LIMIT = 100;
 
+  /** The default notification poll time for the library. Set as string so can use in annotations. */
+  public static final String DEFAULT_NOTIFICATION_POLL_TIME_SECONDS = "10";
+
   /**
    * The configuration for interactions between the library and GOV.UK notify.
    * @param apiKey The API key to use for GOV.UK notify
@@ -96,9 +99,15 @@ public record NotificationLibraryConfigurationProperties(@NotNull GovukNotify go
    * @return the consumer provide retrieval limit or the default library limit if one is not provided
    */
   public int getBulkRetrievalLimit() {
+    return Optional.ofNullable(notification().bulkRetrievalLimit())
+        .orElse(DEFAULT_BULK_RETRIEVAL_LIMIT);
+  }
 
-    return notification() != null
-        ? Optional.ofNullable(notification().bulkRetrievalLimit()).orElse(DEFAULT_BULK_RETRIEVAL_LIMIT)
-        : DEFAULT_BULK_RETRIEVAL_LIMIT;
+  public Notification notification() {
+    return Optional.ofNullable(notification)
+        .orElse(new Notification(
+            Integer.parseInt(DEFAULT_NOTIFICATION_POLL_TIME_SECONDS),
+            DEFAULT_BULK_RETRIEVAL_LIMIT
+        ));
   }
 }

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
 
 @Component
 @EnableSchedulerLock(defaultLockAtMostFor = "10m")
@@ -28,7 +29,9 @@ class NotificationProcessor {
   }
 
   @Scheduled(
-      fixedDelayString = "${digital-notification-library.notification.poll-time-seconds:10}",
+      fixedDelayString =
+          "${digital-notification-library.notification.poll-time-seconds:" +
+              NotificationLibraryConfigurationProperties.DEFAULT_NOTIFICATION_POLL_TIME_SECONDS + "}",
       timeUnit = TimeUnit.SECONDS
   )
   @SchedulerLock(name = "NotificationScheduler_processNotifications")

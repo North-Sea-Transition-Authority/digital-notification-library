@@ -180,4 +180,53 @@ class NotificationLibraryConfigurationPropertiesTest {
       }
     }
   }
+
+  @DisplayName("WHEN I do not configure any notification properties")
+  @Nested
+  class WhenNoNotificationProperties {
+
+    @DisplayName("THEN the defaults will be used")
+    @Test
+    void thenDefaultValuesUsed() {
+
+      var libraryProperties = propertiesBuilder
+          .withNotificationProperties(null)
+          .build();
+
+      assertThat(libraryProperties.notification())
+          .extracting(
+              NotificationLibraryConfigurationProperties.Notification::pollTimeSeconds,
+              NotificationLibraryConfigurationProperties.Notification::bulkRetrievalLimit
+          )
+          .containsExactly(
+              10,
+              100
+          );
+    }
+  }
+
+  @DisplayName("WHEN I configure any notification properties")
+  @Nested
+  class WhenNotificationProperties {
+
+    @DisplayName("THEN the defaults will be used")
+    @Test
+    void thenCustomValuesUsed() {
+
+      var libraryProperties = propertiesBuilder
+          .withNotificationPollTimeSeconds(15)
+          .withNotificationRetrievalLimit(90)
+          .build();
+
+      assertThat(libraryProperties.notification())
+          .extracting(
+              NotificationLibraryConfigurationProperties.Notification::pollTimeSeconds,
+              NotificationLibraryConfigurationProperties.Notification::bulkRetrievalLimit
+          )
+          .containsExactly(
+              15,
+              90
+          );
+    }
+  }
 }
