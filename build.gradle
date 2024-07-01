@@ -52,6 +52,8 @@ repositories {
     }
 }
 
+def notificationsJavaClientVersion = '5.1.0-RELEASE'
+
 dependencies {
 
     // spring starter dependencies
@@ -67,7 +69,7 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3'
 
     // external dependencies
-    implementation 'uk.gov.service.notify:notifications-java-client:5.0.0-RELEASE'
+    implementation "uk.gov.service.notify:notifications-java-client:${notificationsJavaClientVersion}"
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
 
@@ -93,7 +95,7 @@ dependencies {
     integrationTestImplementation 'org.testcontainers:postgresql:1.19.1'
     integrationTestImplementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
     integrationTestImplementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.10.0'
-    integrationTestImplementation 'uk.gov.service.notify:notifications-java-client:4.1.0-RELEASE'
+    integrationTestImplementation "uk.gov.service.notify:notifications-java-client:${notificationsJavaClientVersion}"
 
 }
 
