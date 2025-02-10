@@ -79,6 +79,7 @@ Then once the `client.prepareUpload` method is called, the email will be sent wi
 ```
 Having an extra column on the Notifications table, keeps a separation of concerns and means we don't need to overwrite the value of a mail merge field.
 
+### Options consider but not taken forward
 ### Option 1
 The consumer provides notify with a url to get the file & a bearer token to authenticate the request. In the scheduled method, we can check to see if the notification has
 any file attachments. If it does, we make a request to the url that the consumer provided, using the file id from the mail merge fields. Once we have the file we can
@@ -88,29 +89,23 @@ pass it into the `client.prepareUpload(fileContents)` method and add it as a mai
 Pass the file to the library as an input stream. The notification library can then store the file in S3. In the scheduled method, we can check to see if the notification 
 has any file attachments. If it does then we can fetch the file from S3 and add it as a mail merge field/personalisation for the template to use.
 
-### Option 3
-The consumer should provide an `emailAttachmentResolver` bean which takes in a `fileId` and returns a `byte[]`. A typical implementation will go and get the file from the 
-consumers S3 bucket, however, it could also generate the file ad-hoc. The notification library will have the file ids stored in a FileAttachmentJson column on the notification table. 
-In the scheduled method, the `emailAttachmentResolver` bean will be invoked using the fileId from the stored mail merge fields. We would then use the 
+## Decision Outcome
+The consumer should provide an `emailAttachmentResolver` bean which takes in a `fileId` and returns a `byte[]`. A typical implementation will go and get the file from the
+consumers S3 bucket, however, it could also generate the file ad-hoc. The notification library will have the file ids stored in a FileAttachmentJson column on the notification table.
+In the scheduled method, the `emailAttachmentResolver` bean will be invoked using the fileId from the stored mail merge fields. We would then use the
 `client.prepareUpload()` method with the returned `byte[]` to add the file as a mail merge field and send the email to notify.
 
-## Decision Outcome
-
-// TODO need to do pros and cons here
-Option 3. That way the consumer deals with the logic to resolve and store files, and it's decoupled from the notify library. It also simplifies things as the notify library doesn't need to have it's own S3 client/bucket, and avoids duplicating files in multiple buckets etc
-
-### How will we handle retries/failing to send attachments?
-// TODO need to fill this bit out
+This option means that the consumer deals with the logic to resolve and store files. It also means that the notify library doesn't need to have its own S3 client/bucket and therefore avoids 
+duplicating files in multiple buckets.
 
 ### Notify limitations
 **Notify has a 2MB file size limit.**
 
 Before sending the email, we can check whether the resolved file is >2Mb. If it is, we can throw a checked exception which the consumer is responsible for handling. 
 This means we fail before we try to send the email and notify won't be spammed with retries.
+The consumer should decide how to handle this exception. Alternatively, the consumer could check if a document is above 2MB and handle it before sending the email.
 
 **If users aren't able to access the Energy Portal, how do we know they can access the Notify link to download?**
 
 This is something each consumer needs to consider for its own use case. On S29, we know that it's users from Iran who can't access the Energy Portal. We reached out to 
-the Notify team to confirm that there are no restrictions on users in Iran. 
-
-// TODO need to add email response from notify
+the Notify team, they let us know that Notify & their providers do not have any restrictions in place for Iran. 
