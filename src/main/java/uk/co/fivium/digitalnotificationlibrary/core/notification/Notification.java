@@ -42,6 +42,9 @@ class Notification {
   @JdbcTypeCode(SqlTypes.JSON)
   private Set<MailMergeField> mailMergeFields;
 
+  @JdbcTypeCode(SqlTypes.JSON)
+  private Set<MailMergeField> fileAttachments;
+
   private String domainReferenceId;
 
   private String domainReferenceType;
@@ -125,6 +128,15 @@ class Notification {
 
   void setMailMergeFields(Set<MailMergeField> mailMergeFields) {
     this.mailMergeFields = mailMergeFields;
+  }
+
+  public Set<MailMergeField> getFileAttachments() {
+    return fileAttachments;
+  }
+
+  public void setFileAttachments(
+      Set<MailMergeField> fileAttachments) {
+    this.fileAttachments = fileAttachments;
   }
 
   String getDomainReferenceId() {
@@ -228,6 +240,7 @@ class Notification {
         ", lastFailedAt='" + lastFailedAt +
         ", retryCount='" + retryCount + '\'' +
         ", lastSendAttemptAt='" + lastSendAttemptAt +
+        ", fileAttachments='" + fileAttachments +
         '}';
   }
 }

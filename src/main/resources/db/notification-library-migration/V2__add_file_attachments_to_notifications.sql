@@ -1,0 +1,5 @@
+ALTER TABLE notification_library_notifications
+ADD COLUMN file_attachments JSONB;
+
+ALTER TABLE notification_library_notifications_aud
+ADD COLUMN file_attachments JSONB;

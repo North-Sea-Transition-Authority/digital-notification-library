@@ -40,6 +40,18 @@ public record Template(
         .withMailMergeField(key, value);
   }
 
+  /**
+   * Add a file attachment to the template.
+   * @param key The key of the file attachment
+   * @param fileId The id of the file
+   * @return A merged template builder
+   */
+  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String key, Object fileId) {
+    return new MergedTemplate.MergedTemplateBuilder(this)
+        .withFileAttachment(key, fileId);
+  }
+
+
   static Template createUnconfirmedTemplate(String notifyTemplateId) {
     return new Template(
         notifyTemplateId,

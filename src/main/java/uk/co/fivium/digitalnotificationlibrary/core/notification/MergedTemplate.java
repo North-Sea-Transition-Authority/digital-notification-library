@@ -15,10 +15,12 @@ public class MergedTemplate {
   private final Template template;
 
   private final Set<MailMergeField> mailMergeFields;
+  private final Set<MailMergeField> fileAttachments;
 
-  private MergedTemplate(Template template, Set<MailMergeField> mailMergeFields) {
+  private MergedTemplate(Template template, Set<MailMergeField> mailMergeFields, Set<MailMergeField> fileAttachments) {
     this.template = template;
     this.mailMergeFields = mailMergeFields;
+    this.fileAttachments = fileAttachments;
   }
 
   /**
@@ -38,6 +40,14 @@ public class MergedTemplate {
   }
 
   /**
+   * Get the field attachments for the template.
+   * @return the field attachments
+   */
+  public Set<MailMergeField> getFileAttachments() {
+    return fileAttachments;
+  }
+
+  /**
    * Get an instantiated MergedTemplateBuilder object.
    * @param template The template to use to construct this merge template
    * @return An instance of the MergedTemplateBuilder with the provided template
@@ -54,6 +64,7 @@ public class MergedTemplate {
     private final Template template;
 
     private final Map<String, Object> mailMergeFields = new HashMap<>();
+    private final Map<String, Object> fileAttachments = new HashMap<>();
 
     MergedTemplateBuilder(Template template) {
       this.template = template;
@@ -90,6 +101,25 @@ public class MergedTemplate {
       return this;
     }
 
+    /// TODO with fileAttachments(Set<>...??
+
+    /**
+     * Utility method to add a file attachment.
+     * @param name The name of the attachment
+     * @param fileId The file id
+     * @return The builder
+     */
+    public MergedTemplateBuilder withFileAttachment(String name, Object fileId) {
+
+      if (StringUtils.isNotBlank(name)) {
+        fileAttachments.put(name, fileId);
+      } else {
+        throw new IllegalArgumentException("A non empty file attachment name must be provided");
+      }
+
+      return this;
+    }
+
     /**
      * Utility method to create a new merged template.
      * @return an instantiated merged template
@@ -102,7 +132,13 @@ public class MergedTemplate {
           .map(field -> new MailMergeField(field.getKey(), field.getValue()))
           .collect(Collectors.toSet());
 
-      return new MergedTemplate(template, mailMergeFieldSet);
+      // TODO rename MM field class to be more generic
+      Set<MailMergeField> fieldAttachmentsSet = fileAttachments.entrySet()
+          .stream()
+          .map(field -> new MailMergeField(field.getKey(), field.getValue()))
+          .collect(Collectors.toSet());
+
+      return new MergedTemplate(template, mailMergeFieldSet, fieldAttachmentsSet);
     }
   }
 }
