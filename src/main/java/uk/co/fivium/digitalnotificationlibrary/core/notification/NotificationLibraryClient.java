@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
@@ -14,6 +15,8 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNoti
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsNotification;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.sms.SmsRecipient;
+import uk.gov.service.notify.NotificationClient;
+import uk.gov.service.notify.NotificationClientException;
 
 /**
  * The main service consumers will use to interact with the library.
@@ -77,6 +80,10 @@ public class NotificationLibraryClient {
     } else {
       return Template.createUnconfirmedTemplate(notifyTemplateId);
     }
+  }
+
+  public JSONObject prepareUpload(byte [] fileContents, String fileName) throws Exception {
+    return NotificationClient.prepareUpload(fileContents, fileName);
   }
 
   /**
