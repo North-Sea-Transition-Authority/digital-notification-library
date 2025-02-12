@@ -1,4 +1,4 @@
-# [short title of solved problem and solution]
+# Sending emails with file attachments
 
 * Deciders: llittle, swarner, dashworth
 * Discussed on digital technical: https://fivium.slack.com/archives/C06L8PF8E9K/p1738593458271709
@@ -7,7 +7,7 @@ Technical Story: [S29-571](https://fivium.atlassian.net/browse/S29-571)
 
 ## Context and Problem Statement
 Currently, the Digital Notification Library does not support sending email attachments, but GOVUK Notify does.
-Java client documentation - GOV.UK Notify.
+[Send a file by email documentation](https://docs.notifications.service.gov.uk/java.html#send-a-file-by-email)
 
 In S29 we have 2 options for sending letters - via portal and via a different method. Majority will be sent via the portal and industry users will log in and view them. 
 But certain companies won't have access to the portal (e.g. a company based in Iran) and those are the ones that we want to send an email with the file attachment. 
@@ -44,7 +44,7 @@ notificationLibraryClient.getTemplate(notifyTemplate.getTemplateId())
         .withFileAttachment("LINK_TO_FILE", fileUuid)
 ```
 
-On the notify side, anything defined with the `withFileAttachment` method will be added to a `Set<FileAttachments> fileAttachments` column in the DB (which is a json column 
+On the notify side, anything defined with the `withFileAttachment` method will be added to a `Set<FileAttachment> fileAttachments` column in the DB (which is a json column 
 of mail merge field name as the key and the file id as the value).
 Once we have the actual file as a `byte[]`, we can then add it to the personalisation/mail merge fields with the same MM field name.
 
@@ -79,11 +79,11 @@ Then once the `client.prepareUpload` method is called, the email will be sent wi
 ```
 Having an extra column on the Notifications table, keeps a separation of concerns and means we don't need to overwrite the value of a mail merge field.
 
-### Options consider but not taken forward
+### Options considered but not taken forward
 ### Option 1
 The consumer provides notify with a url to get the file & a bearer token to authenticate the request. In the scheduled method, we can check to see if the notification has
 any file attachments. If it does, we make a request to the url that the consumer provided, using the file id from the mail merge fields. Once we have the file we can
-pass it into the `client.prepareUpload(fileContents)` method and add it as a mail merge field/personalisation for the template to use.
+pass it into the `client.prepareUpload(fileContents)` method and add it as a mail merge field/personalisation for the template to use. 
 
 ### Option 2
 Pass the file to the library as an input stream. The notification library can then store the file in S3. In the scheduled method, we can check to see if the notification 
@@ -92,11 +92,11 @@ has any file attachments. If it does then we can fetch the file from S3 and add 
 ## Decision Outcome
 The consumer should provide an `emailAttachmentResolver` bean which takes in a `fileId` and returns a `byte[]`. A typical implementation will go and get the file from the
 consumers S3 bucket, however, it could also generate the file ad-hoc. The notification library will have the file ids stored in a FileAttachmentJson column on the notification table.
-In the scheduled method, the `emailAttachmentResolver` bean will be invoked using the fileId from the stored mail merge fields. We would then use the
-`client.prepareUpload()` method with the returned `byte[]` to add the file as a mail merge field and send the email to notify.
+In the scheduled method, the `emailAttachmentResolver` bean will be invoked using the fileId from the stored mail merge fields. It would trigger the consumer to go and fetch the file and return it to notify as a byte array.
+We would then use the`client.prepareUpload()` method with the returned `byte[]` to add the file as a mail merge field and send the email to notify.
 
 This option means that the consumer deals with the logic to resolve and store files. It also means that the notify library doesn't need to have its own S3 client/bucket and therefore avoids 
-duplicating files in multiple buckets.
+duplicating files in multiple buckets. 
 
 ### Notify limitations
 **Notify has a 2MB file size limit.**
