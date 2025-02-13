@@ -73,7 +73,9 @@ class NotificationSendingService {
               .forEach(attachment -> {
                 byte[] file = null;
                 try {
-                  file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
+                  if (NotificationStatus.QUEUED.equals(notification.getStatus())) {
+                    file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
+                  }
                 } catch (IOException e) {
                   throw new RuntimeException(e);
                 }
