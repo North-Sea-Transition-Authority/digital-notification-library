@@ -65,24 +65,30 @@ class NotificationSendingService {
 
     notificationsToSend.forEach(notificationToSend ->
         transactionTemplate.executeWithoutResult(status -> {
-          var notification = sendNotification(notificationToSend);
+          var notification = addFileMailMergeFields(notificationToSend);
+          sendNotification(notification);
           notificationRepository.save(notification);
-
-          // TODO remove this
-          notification.getFileAttachments()
-              .forEach(attachment -> {
-                byte[] file = null;
-                try {
-                  if (NotificationStatus.QUEUED.equals(notification.getStatus())) {
-                    file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
-                    System.out.print(file.length);
-                  }
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
         })
     );
+  }
+
+  private Notification addFileMailMergeFields(Notification notification) {
+    // TODO remove this
+    notification.getFileAttachments()
+        .forEach(attachment -> {
+          byte[] file = null;
+          try {
+            if (NotificationStatus.QUEUED.equals(notification.getStatus())) {
+              file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
+              System.out.print(file.length);
+            }
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+
+    // TODO add mail merge fields
+    return notification;
   }
 
   private Notification sendNotification(Notification notification) {
