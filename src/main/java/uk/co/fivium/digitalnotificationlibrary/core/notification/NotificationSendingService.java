@@ -64,6 +64,9 @@ class NotificationSendingService {
         transactionTemplate.executeWithoutResult(status -> {
           var notification = sendNotification(notificationToSend);
           notificationRepository.save(notification);
+
+          // TODO remove this
+          System.out.println(notification.getFileAttachments());
         })
     );
   }
