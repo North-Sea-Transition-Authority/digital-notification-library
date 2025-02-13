@@ -1,8 +1,10 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
 import java.util.UUID;
+import org.springframework.stereotype.Component;
 
+@Component
 public interface EmailAttachmentResolver {
 
-  Byte[] resolveFileAttachment(UUID fileId);
+  byte[] resolveFileAttachment(UUID fileId);
 }

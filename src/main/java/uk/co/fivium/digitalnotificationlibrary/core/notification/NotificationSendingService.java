@@ -32,18 +32,20 @@ class NotificationSendingService {
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
   private final Clock clock;
+  private final EmailAttachmentResolver emailAttachmentResolver;
 
   @Autowired
   NotificationSendingService(PlatformTransactionManager transactionManager,
                              NotificationLibraryNotificationRepository notificationRepository,
                              GovukNotifySender govukNotifySender,
                              NotificationLibraryConfigurationProperties libraryConfigurationProperties,
-                             Clock clock) {
+                             Clock clock, EmailAttachmentResolver emailAttachmentResolver) {
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.notificationRepository = notificationRepository;
     this.govukNotifySender = govukNotifySender;
     this.libraryConfigurationProperties = libraryConfigurationProperties;
     this.clock = clock;
+    this.emailAttachmentResolver = emailAttachmentResolver;
   }
 
   void sendNotificationsToNotify() {
@@ -66,7 +68,11 @@ class NotificationSendingService {
           notificationRepository.save(notification);
 
           // TODO remove this
-          System.out.println(notification.getFileAttachments());
+          notification.getFileAttachments()
+              .forEach(attachment -> {
+                var file = emailAttachmentResolver.resolveFileAttachment(UUID.fromString((String) attachment.value()));
+                System.out.println(file.length);
+              });
         })
     );
   }
