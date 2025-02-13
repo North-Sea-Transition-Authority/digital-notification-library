@@ -75,11 +75,11 @@ class NotificationSendingService {
                 try {
                   if (NotificationStatus.QUEUED.equals(notification.getStatus())) {
                     file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
+                    System.out.print(file.length);
                   }
                 } catch (IOException e) {
                   throw new RuntimeException(e);
                 }
-                System.out.println(file.length);
               });
         })
     );
