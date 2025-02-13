@@ -75,29 +75,25 @@ class NotificationSendingService {
   }
 
   private Notification addFileMailMergeFields(Notification notification) {
-    // TODO remove this
-    notification.getFileAttachments()
-        .forEach(attachment -> {
-          System.out.print(attachment.fileId());
+    for (FileAttachment fileAttachment : notification.getFileAttachments()) {
+      byte[] file;
+      try {
+        file = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
+        var mailMergeFields = notification.getMailMergeFields();
+        var fileMailMergeField = new MailMergeField(fileAttachment.name(), NotificationClient.prepareUpload(file));
+        mailMergeFields.add(fileMailMergeField);
 
-          byte[] file = null;
-          try {
-            if (NotificationStatus.QUEUED.equals(notification.getStatus())) {
-              file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
-              var mailMergeFields = notification.getMailMergeFields();
-              var fileMailMergeField = new MailMergeField(attachment.name(), NotificationClient.prepareUpload(file));
-              mailMergeFields.add(fileMailMergeField);
-            }
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          } catch (NotificationClientException e) {
-            throw new RuntimeException(e);
-          }
-        });
+      } catch (IOException e) {
+        // TODO sort out these exceptions
+        throw new RuntimeException(e);
+      } catch (NotificationClientException e) {
+        throw new RuntimeException(e);
+      }
+    }
     return notification;
   }
 
-  private Notification sendNotification(Notification notification) {
+  private void sendNotification(Notification notification) {
 
     if (NotificationStatus.RETRY.equals(notification.getStatus())) {
       notification.setRetryCount(notification.getRetryCount() + 1);
@@ -127,8 +123,6 @@ class NotificationSendingService {
         }
       }
     }
-
-    return notification;
   }
 
   private void handleErrorResponse(Notification notification, Response.ErrorResponse response) {
