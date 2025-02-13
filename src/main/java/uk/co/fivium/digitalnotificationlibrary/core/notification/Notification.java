@@ -43,7 +43,7 @@ class Notification {
   private Set<MailMergeField> mailMergeFields;
 
   @JdbcTypeCode(SqlTypes.JSON)
-  private Set<MailMergeField> fileAttachments;
+  private Set<FileAttachment> fileAttachments;
 
   private String domainReferenceId;
 
@@ -130,12 +130,11 @@ class Notification {
     this.mailMergeFields = mailMergeFields;
   }
 
-  public Set<MailMergeField> getFileAttachments() {
+  public Set<FileAttachment> getFileAttachments() {
     return fileAttachments;
   }
 
-  public void setFileAttachments(
-      Set<MailMergeField> fileAttachments) {
+  public void setFileAttachments(Set<FileAttachment> fileAttachments) {
     this.fileAttachments = fileAttachments;
   }
 

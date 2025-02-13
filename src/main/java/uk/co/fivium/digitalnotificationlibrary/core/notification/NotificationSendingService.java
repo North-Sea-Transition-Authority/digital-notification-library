@@ -70,7 +70,7 @@ class NotificationSendingService {
           // TODO remove this
           notification.getFileAttachments()
               .forEach(attachment -> {
-                var file = emailAttachmentResolver.resolveFileAttachment(UUID.fromString((String) attachment.value()));
+                var file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
                 System.out.println(file.length);
               });
         })

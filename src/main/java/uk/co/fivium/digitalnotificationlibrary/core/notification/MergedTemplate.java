@@ -3,6 +3,7 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -15,9 +16,9 @@ public class MergedTemplate {
   private final Template template;
 
   private final Set<MailMergeField> mailMergeFields;
-  private final Set<MailMergeField> fileAttachments;
+  private final Set<FileAttachment> fileAttachments;
 
-  private MergedTemplate(Template template, Set<MailMergeField> mailMergeFields, Set<MailMergeField> fileAttachments) {
+  private MergedTemplate(Template template, Set<MailMergeField> mailMergeFields, Set<FileAttachment> fileAttachments) {
     this.template = template;
     this.mailMergeFields = mailMergeFields;
     this.fileAttachments = fileAttachments;
@@ -43,7 +44,7 @@ public class MergedTemplate {
    * Get the field attachments for the template.
    * @return the field attachments
    */
-  public Set<MailMergeField> getFileAttachments() {
+  public Set<FileAttachment> getFileAttachments() {
     return fileAttachments;
   }
 
@@ -64,7 +65,7 @@ public class MergedTemplate {
     private final Template template;
 
     private final Map<String, Object> mailMergeFields = new HashMap<>();
-    private final Map<String, Object> fileAttachments = new HashMap<>();
+    private final Map<String, UUID> fileAttachments = new HashMap<>();
 
     MergedTemplateBuilder(Template template) {
       this.template = template;
@@ -109,7 +110,7 @@ public class MergedTemplate {
      * @param fileId The file id
      * @return The builder
      */
-    public MergedTemplateBuilder withFileAttachment(String name, Object fileId) {
+    public MergedTemplateBuilder withFileAttachment(String name, UUID fileId) {
 
       if (StringUtils.isNotBlank(name)) {
         fileAttachments.put(name, fileId);
@@ -133,9 +134,9 @@ public class MergedTemplate {
           .collect(Collectors.toSet());
 
       // TODO rename MM field class to be more generic
-      Set<MailMergeField> fieldAttachmentsSet = fileAttachments.entrySet()
+      Set<FileAttachment> fieldAttachmentsSet = fileAttachments.entrySet()
           .stream()
-          .map(field -> new MailMergeField(field.getKey(), field.getValue()))
+          .map(field -> new FileAttachment(field.getKey(), field.getValue()))
           .collect(Collectors.toSet());
 
       return new MergedTemplate(template, mailMergeFieldSet, fieldAttachmentsSet);

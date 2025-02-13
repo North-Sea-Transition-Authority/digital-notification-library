@@ -228,7 +228,7 @@ public class NotificationLibraryClient {
                                          DomainReference domainReference,
                                          String logCorrelationId,
                                          Set<MailMergeField> mailMergeFields,
-                                         Set<MailMergeField> fileAttachments,
+                                         Set<FileAttachment> fileAttachments,
                                          Template template) {
 
     var notification = new Notification();

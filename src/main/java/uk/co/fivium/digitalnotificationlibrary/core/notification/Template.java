@@ -3,6 +3,7 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import uk.co.fivium.digitalnotificationlibrary.core.DigitalNotificationLibraryException;
 
 /**
@@ -46,7 +47,7 @@ public record Template(
    * @param fileId The id of the file
    * @return A merged template builder
    */
-  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String key, Object fileId) {
+  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String key, UUID fileId) {
     return new MergedTemplate.MergedTemplateBuilder(this)
         .withFileAttachment(key, fileId);
   }
