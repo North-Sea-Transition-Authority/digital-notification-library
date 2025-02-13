@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
+import uk.gov.service.notify.NotificationClient;
+import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 import uk.gov.service.notify.SendSmsResponse;
 
@@ -82,13 +84,16 @@ class NotificationSendingService {
           try {
             if (NotificationStatus.QUEUED.equals(notification.getStatus())) {
               file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
+              var mailMergeFields = notification.getMailMergeFields();
+              var fileMailMergeField = new MailMergeField(attachment.name(), NotificationClient.prepareUpload(file));
+              mailMergeFields.add(fileMailMergeField);
             }
           } catch (IOException e) {
             throw new RuntimeException(e);
+          } catch (NotificationClientException e) {
+            throw new RuntimeException(e);
           }
         });
-
-    // TODO add mail merge fields
     return notification;
   }
 
