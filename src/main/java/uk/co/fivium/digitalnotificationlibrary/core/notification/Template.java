@@ -45,11 +45,12 @@ public record Template(
    * Add a file attachment to the template.
    * @param key The key of the file attachment
    * @param fileId The id of the file
+   * @param fileName The name of the file
    * @return A merged template builder
    */
-  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String key, UUID fileId) {
+  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String key, UUID fileId, String fileName) {
     return new MergedTemplate.MergedTemplateBuilder(this)
-        .withFileAttachment(key, fileId);
+        .withFileAttachment(key, fileId, fileName);
   }
 
 

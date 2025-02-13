@@ -531,7 +531,7 @@ class NotificationSendingServiceTest {
 //    @Nested
 //    class AndEmailNotification {
 //
-//      @ParameterizedTest(name = "THEN the email is set to FAILED_NOT_SENT when a {0} response is returned from notify")
+//      @ParameterizedTest(key = "THEN the email is set to FAILED_NOT_SENT when a {0} response is returned from notify")
 //      @ValueSource(ints = {403, 400})
 //      void whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(int permanentErrorHttpStatus) {
 //
@@ -576,7 +576,7 @@ class NotificationSendingServiceTest {
 //    @Nested
 //    class AndSmsNotification {
 //
-//      @ParameterizedTest(name = "THEN the sms is set to FAILED_NOT_SENT when a {0} response is returned from notify")
+//      @ParameterizedTest(key = "THEN the sms is set to FAILED_NOT_SENT when a {0} response is returned from notify")
 //      @ValueSource(ints = {403, 400})
 //      void whenSmsNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(int permanentErrorHttpStatus) {
 //

@@ -1,6 +1,7 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -65,7 +66,7 @@ public class MergedTemplate {
     private final Template template;
 
     private final Map<String, Object> mailMergeFields = new HashMap<>();
-    private final Map<String, UUID> fileAttachments = new HashMap<>();
+    private final Set<FileAttachment> fileAttachments = new HashSet<>();
 
     MergedTemplateBuilder(Template template) {
       this.template = template;
@@ -73,7 +74,7 @@ public class MergedTemplate {
 
     /**
      * Utility method to add a mail merge field.
-     * @param name The name of the mail merge field
+     * @param name The key of the mail merge field
      * @param value The value of the mail merge field
      * @return The builder
      */
@@ -82,7 +83,7 @@ public class MergedTemplate {
       if (StringUtils.isNotBlank(name)) {
         mailMergeFields.put(name, value);
       } else {
-        throw new IllegalArgumentException("A non empty mail merge field name must be provided");
+        throw new IllegalArgumentException("A non empty mail merge field key must be provided");
       }
 
       return this;
@@ -102,22 +103,35 @@ public class MergedTemplate {
       return this;
     }
 
-    /// TODO with fileAttachments(Set<>...??
-
     /**
      * Utility method to add a file attachment.
-     * @param name The name of the attachment
+     * @param key The key of the file attachment
      * @param fileId The file id
+     * @param fileName The file name
      * @return The builder
      */
-    public MergedTemplateBuilder withFileAttachment(String name, UUID fileId) {
+    public MergedTemplateBuilder withFileAttachment(String key, UUID fileId, String fileName) {
 
-      if (StringUtils.isNotBlank(name)) {
-        fileAttachments.put(name, fileId);
+      if (StringUtils.isNotBlank(key)) {
+        fileAttachments.add(new FileAttachment(key, fileId, fileName));
       } else {
-        throw new IllegalArgumentException("A non empty file attachment name must be provided");
+        throw new IllegalArgumentException("A non empty file attachment key must be provided");
       }
 
+      return this;
+    }
+
+    /**
+     * Utility method to add a collection of file attachments.
+     * @param fileAttachments The collection of file attachments to add
+     * @return The builder
+     */
+    public MergedTemplateBuilder withFileAttachments(Set<FileAttachment> fileAttachments) {
+      if (CollectionUtils.isNotEmpty(fileAttachments)) {
+        fileAttachments.forEach(fileAttachment ->
+            withFileAttachment(fileAttachment.key(), fileAttachment.fileId(), fileAttachment.fileName())
+        );
+      }
       return this;
     }
 
@@ -133,13 +147,7 @@ public class MergedTemplate {
           .map(field -> new MailMergeField(field.getKey(), field.getValue()))
           .collect(Collectors.toSet());
 
-      // TODO rename MM field class to be more generic
-      Set<FileAttachment> fieldAttachmentsSet = fileAttachments.entrySet()
-          .stream()
-          .map(field -> new FileAttachment(field.getKey(), field.getValue()))
-          .collect(Collectors.toSet());
-
-      return new MergedTemplate(template, mailMergeFieldSet, fieldAttachmentsSet);
+      return new MergedTemplate(template, mailMergeFieldSet, fileAttachments);
     }
   }
 }

@@ -29,17 +29,17 @@ class MergedTemplateTest {
       var template = TemplateTestUtil.builder().build();
 
       var resultingMergedTemplate = MergedTemplate.builder(template)
-          .withMailMergeField("field-name", "value")
+          .withMailMergeField("field-key", "value")
           .merge();
 
       assertThat(resultingMergedTemplate.getTemplate()).isEqualTo(template);
       assertThat(resultingMergedTemplate.getMailMergeFields())
           .extracting(MailMergeField::name, MailMergeField::value)
-          .containsExactly(tuple("field-name", "value"));
+          .containsExactly(tuple("field-key", "value"));
     }
   }
 
-  @DisplayName("WHEN a mail merge field name is not provided")
+  @DisplayName("WHEN a mail merge field key is not provided")
   @Nested
   class WhenNullOrEmptyName {
 
@@ -57,8 +57,8 @@ class MergedTemplateTest {
 
     private static Stream<Arguments> nullOrEmptyArguments() {
       return Stream.of(
-          Arguments.of(Named.of("WHEN a null name is provided", null)),
-          Arguments.of(Named.of("WHEN a empty String name is provided", ""))
+          Arguments.of(Named.of("WHEN a null key is provided", null)),
+          Arguments.of(Named.of("WHEN a empty String key is provided", ""))
       );
     }
   }
@@ -99,13 +99,13 @@ class MergedTemplateTest {
       var template = TemplateTestUtil.builder().build();
 
       var mergedTemplate = MergedTemplate.builder(template)
-          .withMailMergeField("field-name", "value")
-          .withMailMergeField("field-name", "other-value")
+          .withMailMergeField("field-key", "value")
+          .withMailMergeField("field-key", "other-value")
           .merge();
 
       assertThat(mergedTemplate.getMailMergeFields())
           .extracting(MailMergeField::name, MailMergeField::value)
-          .containsExactly(tuple("field-name", "other-value"));
+          .containsExactly(tuple("field-key", "other-value"));
     }
   }
 }

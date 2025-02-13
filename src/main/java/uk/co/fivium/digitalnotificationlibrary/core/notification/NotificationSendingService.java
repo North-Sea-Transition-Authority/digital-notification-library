@@ -35,6 +35,7 @@ class NotificationSendingService {
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
   private final Clock clock;
+
   private final EmailAttachmentResolver emailAttachmentResolver;
 
   @Autowired
@@ -76,11 +77,14 @@ class NotificationSendingService {
 
   private Notification addFileMailMergeFields(Notification notification) {
     for (FileAttachment fileAttachment : notification.getFileAttachments()) {
-      byte[] file;
+      byte[] fileContents;
       try {
-        file = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
+        fileContents = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
         var mailMergeFields = notification.getMailMergeFields();
-        var fileMailMergeField = new MailMergeField(fileAttachment.name(), NotificationClient.prepareUpload(file));
+        var fileMailMergeField = new MailMergeField(
+            fileAttachment.key(),
+            NotificationClient.prepareUpload(fileContents, fileAttachment.fileName())
+        );
         mailMergeFields.add(fileMailMergeField);
 
       } catch (IOException e) {

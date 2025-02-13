@@ -21,7 +21,7 @@ class NotifyTemplateTestUtil {
 
     private UUID id = UUID.randomUUID();
 
-    private String name = "template-name";
+    private String name = "template-key";
 
     private String type = "email";
 
@@ -94,7 +94,7 @@ class NotifyTemplateTestUtil {
 
       var templateJson = new JSONObject();
       templateJson.put("id", String.valueOf(id));
-      templateJson.put("name", name);
+      templateJson.put("key", name);
       templateJson.put("type", type);
 
       templateJson.put("created_at", String.valueOf(createdAt));
