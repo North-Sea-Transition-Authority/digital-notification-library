@@ -1,5 +1,6 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Set;
@@ -70,7 +71,12 @@ class NotificationSendingService {
           // TODO remove this
           notification.getFileAttachments()
               .forEach(attachment -> {
-                var file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
+                byte[] file = null;
+                try {
+                  file = emailAttachmentResolver.resolveFileAttachment(attachment.fileId());
+                } catch (IOException e) {
+                  throw new RuntimeException(e);
+                }
                 System.out.println(file.length);
               });
         })
