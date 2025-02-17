@@ -2,6 +2,7 @@ package uk.co.fivium.testapplication;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,7 @@ abstract class AbstractIntegrationTest {
     return notificationLibraryClient.getTemplate(govukNotifyTemplate.getGovukNotifyTemplateId())
         .withMailMergeField("name", "name-value")
         .withMailMergeField("reference", "reference-value")
+        .withFileAttachment("link_to_file", UUID.randomUUID(), "file name")
         .merge();
   }
 }
