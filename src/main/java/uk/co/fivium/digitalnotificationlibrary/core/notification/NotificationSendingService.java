@@ -3,7 +3,6 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.collections4.CollectionUtils;
@@ -45,7 +44,8 @@ class NotificationSendingService {
                              NotificationLibraryNotificationRepository notificationRepository,
                              GovukNotifySender govukNotifySender,
                              NotificationLibraryConfigurationProperties libraryConfigurationProperties,
-                             Clock clock, EmailAttachmentResolver emailAttachmentResolver) {
+                             Clock clock,
+                             EmailAttachmentResolver emailAttachmentResolver) {
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.notificationRepository = notificationRepository;
     this.govukNotifySender = govukNotifySender;
@@ -70,14 +70,14 @@ class NotificationSendingService {
 
     notificationsToSend.forEach(notificationToSend ->
         transactionTemplate.executeWithoutResult(status -> {
-          var notification = addFileMailMergeFields(notificationToSend);
+          var notification = addFileAttachmentsAsMailMergeFields(notificationToSend);
           sendNotification(notification);
           notificationRepository.save(notification);
         })
     );
   }
 
-  private Notification addFileMailMergeFields(Notification notification) {
+  private Notification addFileAttachmentsAsMailMergeFields(Notification notification) {
     if (CollectionUtils.isNotEmpty(notification.getFileAttachments())) {
       for (FileAttachment fileAttachment : notification.getFileAttachments()) {
         byte[] fileContents;

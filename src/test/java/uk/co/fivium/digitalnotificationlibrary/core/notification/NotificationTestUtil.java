@@ -26,6 +26,7 @@ class NotificationTestUtil {
     private String recipient = "recipient";
 
     private final Set<MailMergeField> mailMergeFields = new HashSet<>();
+    private final Set<FileAttachment> fileAttachments = new HashSet<>();
 
     private Instant requestedOn = Instant.now();
 
@@ -57,6 +58,11 @@ class NotificationTestUtil {
 
     Builder withMailMergeField(String name, Object value) {
       this.mailMergeFields.add(new MailMergeField(name, value));
+      return this;
+    }
+
+    Builder withFileAttachment(String key, UUID fileId, String fileName) {
+      this.fileAttachments.add(new FileAttachment(key, fileId, fileName));
       return this;
     }
 
@@ -101,6 +107,7 @@ class NotificationTestUtil {
       notification.setRetryCount(retryCount);
       notification.setLastSendAttemptAt(lastSendAttemptAt);
       notification.setLastFailedAt(lastFailedAt);
+      notification.setFileAttachments(fileAttachments);
       return notification;
     }
   }
