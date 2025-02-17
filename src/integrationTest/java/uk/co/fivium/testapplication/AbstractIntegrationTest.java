@@ -30,6 +30,9 @@ abstract class AbstractIntegrationTest {
   @Autowired
   protected JdbcTemplate jdbcTemplate;
 
+  @Autowired
+  protected EmailAttachmentResolverTestImpl emailAttachmentResolver;
+
   @AfterEach
   void afterEachDatabaseTeardown() {
     jdbcTemplate.execute("DELETE FROM integration_test.notification_library_notifications");
