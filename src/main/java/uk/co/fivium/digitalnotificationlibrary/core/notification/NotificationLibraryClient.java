@@ -186,7 +186,7 @@ public class NotificationLibraryClient {
         domainReference,
         logCorrelationId,
         mergedTemplate.getMailMergeFields(),
-        Set.of(), // TODO do we do this for sms too?
+        Set.of(),
         mergedTemplate.getTemplate()
     );
 

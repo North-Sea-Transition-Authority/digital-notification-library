@@ -3,8 +3,10 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,22 +78,24 @@ class NotificationSendingService {
   }
 
   private Notification addFileMailMergeFields(Notification notification) {
-    for (FileAttachment fileAttachment : notification.getFileAttachments()) {
-      byte[] fileContents;
-      try {
-        fileContents = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
-        var mailMergeFields = notification.getMailMergeFields();
-        var fileMailMergeField = new MailMergeField(
-            fileAttachment.key(),
-            NotificationClient.prepareUpload(fileContents, fileAttachment.fileName())
-        );
-        mailMergeFields.add(fileMailMergeField);
+    if (CollectionUtils.isNotEmpty(notification.getFileAttachments())) {
+      for (FileAttachment fileAttachment : notification.getFileAttachments()) {
+        byte[] fileContents;
+        try {
+          fileContents = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
+          var mailMergeFields = notification.getMailMergeFields();
+          var fileMailMergeField = new MailMergeField(
+              fileAttachment.key(),
+              NotificationClient.prepareUpload(fileContents, fileAttachment.fileName())
+          );
+          mailMergeFields.add(fileMailMergeField);
 
-      } catch (IOException e) {
-        // TODO sort out these exceptions
-        throw new RuntimeException(e);
-      } catch (NotificationClientException e) {
-        throw new RuntimeException(e);
+        } catch (IOException e) {
+          // TODO sort out these exceptions
+          throw new RuntimeException(e);
+        } catch (NotificationClientException e) {
+          throw new RuntimeException(e);
+        }
       }
     }
     return notification;
