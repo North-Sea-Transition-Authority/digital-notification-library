@@ -62,7 +62,7 @@ abstract class AbstractIntegrationTest {
     return notificationLibraryClient.getTemplate(govukNotifyTemplate.getGovukNotifyTemplateId())
         .withMailMergeField("name", "name-value")
         .withMailMergeField("reference", "reference-value")
-        .withFileAttachment("link_to_file", UUID.randomUUID(), "file name")
+        .withFileAttachment("link_to_file", UUID.randomUUID(), "fileName.pdf")
         .merge();
   }
 }
