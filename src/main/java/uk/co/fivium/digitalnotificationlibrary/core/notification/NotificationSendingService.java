@@ -92,7 +92,7 @@ class NotificationSendingService {
           );
           mailMergeFields.add(fileMailMergeField);
 
-        } catch (IOException|NotificationClientException e) {
+        } catch (IOException | NotificationClientException e) {
           // TODO S29-572, error/exception handling
         }
       }
