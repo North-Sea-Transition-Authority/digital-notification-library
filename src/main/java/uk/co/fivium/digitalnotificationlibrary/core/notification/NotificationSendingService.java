@@ -77,7 +77,7 @@ class NotificationSendingService {
     );
   }
 
-  private Notification addFileAttachmentsAsMailMergeFields(Notification notification) throws NotificationClientException {
+  private Notification addFileAttachmentsAsMailMergeFields(Notification notification) {
     if (CollectionUtils.isNotEmpty(notification.getFileAttachments())
         && NotificationStatus.QUEUED.equals(notification.getStatus())) {
 
