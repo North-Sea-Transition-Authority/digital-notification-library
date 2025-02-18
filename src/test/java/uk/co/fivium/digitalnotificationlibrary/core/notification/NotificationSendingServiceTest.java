@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -287,11 +288,9 @@ class NotificationSendingServiceTest {
 
       @DisplayName("THEN the email is sent to notify for its first retry attempt")
       @Test
-      void whenFirstRetryEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException, NotificationClientException {
+      void whenFirstRetryEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
 
         Instant yesterday = FIXED_CLOCK.instant().minus(1, ChronoUnit.DAYS);
-        var fileId = UUID.randomUUID();
-        var fileName = "fileName";
 
         var retryNotification = NotificationTestUtil.builder()
             .withType(NotificationType.EMAIL)
@@ -299,7 +298,6 @@ class NotificationSendingServiceTest {
             .withRetryCount(0)
             .withLastSendAttemptAt(yesterday)
             .withLastFailedAt(yesterday)
-            .withFileAttachment("link_to_file", fileId, fileName)
             .build();
 
         givenDatabaseReturnsNotification(retryNotification);
@@ -312,14 +310,6 @@ class NotificationSendingServiceTest {
 
         given(govukNotifyService.sendEmail(retryNotification))
             .willReturn(expectedEmailResponse);
-
-        var fileContents = new byte[] {1, 2, 3};
-        given(emailAttachmentResolver.resolveFileAttachment(fileId)).willReturn(fileContents);
-        var uploadedFile = new JSONObject();
-        uploadedFile.put("link_to_file", fileId);
-
-
-        given(NotificationClient.prepareUpload(fileContents, fileName)).willReturn(uploadedFile);
 
         notificationSendingService.sendNotificationsToNotify();
 
@@ -347,18 +337,15 @@ class NotificationSendingServiceTest {
                 yesterday
             );
 
-        assertThat(savedNotification.getMailMergeFields())
-            .extracting(MailMergeField::name, MailMergeField::value)
-            .containsExactly(tuple("link_to_file", uploadedFile));
+        verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
+        verifyNoInteractions(NotificationClient.class);
       }
 
       @DisplayName("THEN the email is sent to notify for its next retry attempt")
       @Test
-      void whenSecondRetryEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException, NotificationClientException {
+      void whenSecondRetryEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
 
         Instant yesterday = FIXED_CLOCK.instant().minus(1, ChronoUnit.DAYS);
-        var fileId = UUID.randomUUID();
-        var fileName = "fileName";
 
         var retryNotification = NotificationTestUtil.builder()
             .withType(NotificationType.EMAIL)
@@ -366,7 +353,6 @@ class NotificationSendingServiceTest {
             .withRetryCount(1)
             .withLastSendAttemptAt(yesterday)
             .withLastFailedAt(yesterday)
-            .withFileAttachment("link_to_file", fileId, fileName)
             .build();
 
         givenDatabaseReturnsNotification(retryNotification);
@@ -379,13 +365,6 @@ class NotificationSendingServiceTest {
 
         given(govukNotifyService.sendEmail(retryNotification))
             .willReturn(expectedEmailResponse);
-
-        var fileContents = new byte[] {1, 2, 3};
-        given(emailAttachmentResolver.resolveFileAttachment(fileId)).willReturn(fileContents);
-        var uploadedFile = new JSONObject();
-        uploadedFile.put("link_to_file", fileId);
-
-        given(NotificationClient.prepareUpload(fileContents, fileName)).willReturn(uploadedFile);
 
         notificationSendingService.sendNotificationsToNotify();
 
@@ -413,10 +392,8 @@ class NotificationSendingServiceTest {
                 yesterday
             );
 
-
-        assertThat(savedNotification.getMailMergeFields())
-            .extracting(MailMergeField::name, MailMergeField::value)
-            .containsExactly(tuple("link_to_file", uploadedFile));
+        verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
+        verifyNoInteractions(NotificationClient.class);
       }
     }
 
