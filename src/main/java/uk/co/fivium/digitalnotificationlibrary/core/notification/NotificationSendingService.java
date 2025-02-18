@@ -78,7 +78,9 @@ class NotificationSendingService {
   }
 
   private Notification addFileAttachmentsAsMailMergeFields(Notification notification) {
-    if (CollectionUtils.isNotEmpty(notification.getFileAttachments())) {
+    if (CollectionUtils.isNotEmpty(notification.getFileAttachments())
+        && NotificationStatus.QUEUED.equals(notification.getStatus())) {
+
       for (FileAttachment fileAttachment : notification.getFileAttachments()) {
         byte[] fileContents;
         try {
