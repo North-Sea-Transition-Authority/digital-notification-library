@@ -107,7 +107,7 @@ public class MergedTemplate {
      * Utility method to add a file attachment.
      * @param key The key of the file attachment
      * @param fileId The file id
-     * @param fileName The file name
+     * @param fileName The file name which must end with a file E.g. .pdf or .csv
      * @return The builder
      */
     public MergedTemplateBuilder withFileAttachment(String key, UUID fileId, String fileName) {

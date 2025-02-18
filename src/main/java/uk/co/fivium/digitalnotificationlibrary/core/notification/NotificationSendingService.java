@@ -77,7 +77,7 @@ class NotificationSendingService {
     );
   }
 
-  private Notification addFileAttachmentsAsMailMergeFields(Notification notification) {
+  private Notification addFileAttachmentsAsMailMergeFields(Notification notification) throws NotificationClientException {
     if (CollectionUtils.isNotEmpty(notification.getFileAttachments())
         && NotificationStatus.QUEUED.equals(notification.getStatus())) {
 
@@ -92,11 +92,8 @@ class NotificationSendingService {
           );
           mailMergeFields.add(fileMailMergeField);
 
-        } catch (IOException e) {
-          // TODO sort out these exceptions
-          throw new RuntimeException(e);
-        } catch (NotificationClientException e) {
-          throw new RuntimeException(e);
+        } catch (IOException|NotificationClientException e) {
+          // TODO S29-572, error/exception handling
         }
       }
     }
