@@ -3,6 +3,7 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -112,12 +113,13 @@ public class MergedTemplate {
      */
     public MergedTemplateBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
 
-      if (StringUtils.isNotBlank(mailMergeFieldName)) {
-        fileAttachments.add(new FileAttachment(mailMergeFieldName, fileId, fileName));
-      } else {
+      if (StringUtils.isBlank(mailMergeFieldName)) {
         throw new IllegalArgumentException("A non empty file attachment mailMergeFieldName must be provided");
+      } else if (Objects.isNull(fileId)) {
+        throw new IllegalArgumentException("A non empty file attachment fileId must be provided");
       }
 
+      fileAttachments.add(new FileAttachment(mailMergeFieldName, fileId, fileName));
       return this;
     }
 

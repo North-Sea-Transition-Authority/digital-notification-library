@@ -160,6 +160,18 @@ class NotificationSendingService {
 
       failureReason = NOTIFICATION_FAILURE_REASON_MESSAGE_FORMAT.formatted(errorMessage, response.message());
 
+    } else if (isRequestTooLong(response)) {
+
+      notificationStatus = NotificationStatus.FAILED_NOT_SENT;
+
+      var errorMessage = ("Failed with 413 response from GOV.UK Notify when sending notification " +
+          "with ID %s to notify. Library will not retrying sending.")
+          .formatted(notification.getId());
+
+      LOGGER.error(errorMessage);
+
+      failureReason = NOTIFICATION_FAILURE_REASON_MESSAGE_FORMAT.formatted(errorMessage, response.message());
+
     } else {
 
       var errorMessage = ("Failed with %s response from GOV.UK Notify when sending notification " +
@@ -190,5 +202,9 @@ class NotificationSendingService {
 
   private boolean isBadRequestResponse(Response.ErrorResponse response) {
     return response.httpStatus() == HttpStatus.SC_BAD_REQUEST;
+  }
+
+  private boolean isRequestTooLong(Response.ErrorResponse response) {
+    return response.httpStatus() == HttpStatus.SC_REQUEST_TOO_LONG;
   }
 }
