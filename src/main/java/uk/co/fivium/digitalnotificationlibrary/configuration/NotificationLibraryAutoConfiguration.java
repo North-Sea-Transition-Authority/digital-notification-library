@@ -37,13 +37,9 @@ class NotificationLibraryAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public EmailAttachmentResolver noOpEmailAttachmentResolver() {
-    return new EmailAttachmentResolver() {
-
-      @Override
-      public byte[] resolveFileAttachment(UUID fileId) {
-        throw new RuntimeException(
-            "Email attachment found but consumer did not provide an EmailAttachmentResolver implementation");
-      }
+    return fileId -> {
+      throw new RuntimeException(
+          "Email attachment found but consumer did not provide an EmailAttachmentResolver implementation");
     };
   }
 }

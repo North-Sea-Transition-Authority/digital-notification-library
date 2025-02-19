@@ -1,6 +1,5 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
-import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Set;
