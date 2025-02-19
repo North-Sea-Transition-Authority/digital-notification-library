@@ -43,14 +43,14 @@ public record Template(
 
   /**
    * Add a file attachment to the template.
-   * @param key The key of the file attachment
+   * @param mailMergeFieldName The name of the mail merge field for this attachment
    * @param fileId The id of the file
    * @param fileName The file name which must end with a file E.g. .pdf or .csv
    * @return A merged template builder
    */
-  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String key, UUID fileId, String fileName) {
+  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
     return new MergedTemplate.MergedTemplateBuilder(this)
-        .withFileAttachment(key, fileId, fileName);
+        .withFileAttachment(mailMergeFieldName, fileId, fileName);
   }
 
 

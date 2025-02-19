@@ -105,15 +105,15 @@ public class MergedTemplate {
 
     /**
      * Utility method to add a file attachment.
-     * @param key The key of the file attachment
+     * @param mailMergeFieldName The name of the mail merge field for this attachment
      * @param fileId The file id
      * @param fileName The file name which must end with a file E.g. .pdf or .csv
      * @return The builder
      */
-    public MergedTemplateBuilder withFileAttachment(String key, UUID fileId, String fileName) {
+    public MergedTemplateBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
 
-      if (StringUtils.isNotBlank(key)) {
-        fileAttachments.add(new FileAttachment(key, fileId, fileName));
+      if (StringUtils.isNotBlank(mailMergeFieldName)) {
+        fileAttachments.add(new FileAttachment(mailMergeFieldName, fileId, fileName));
       } else {
         throw new IllegalArgumentException("A non empty file attachment key must be provided");
       }

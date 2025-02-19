@@ -39,10 +39,10 @@ class NotificationProcessingOrderIntegrationTest extends AbstractIntegrationTest
     );
 
     jdbcTemplate.execute("""
-        UPDATE integration_test.notification_library_notifications
-        SET last_send_attempt_at = null, log_correlation_id = '%s', status = '%s'
-        WHERE id = '%s'
-        """
+          UPDATE integration_test.notification_library_notifications
+          SET last_send_attempt_at = null, log_correlation_id = '%s', status = '%s'
+          WHERE id = '%s'
+          """
         .formatted(
             logCorrelationId,
             "QUEUED",
@@ -58,10 +58,10 @@ class NotificationProcessingOrderIntegrationTest extends AbstractIntegrationTest
     );
 
     jdbcTemplate.execute("""
-        UPDATE integration_test.notification_library_notifications
-        SET last_send_attempt_at = '%s', log_correlation_id = '%s', status = '%s'
-        WHERE id = '%s'
-        """
+          UPDATE integration_test.notification_library_notifications
+          SET last_send_attempt_at = '%s', log_correlation_id = '%s', status = '%s'
+          WHERE id = '%s'
+          """
         .formatted(
             Instant.now().minusSeconds(10),
             logCorrelationId,
@@ -78,10 +78,10 @@ class NotificationProcessingOrderIntegrationTest extends AbstractIntegrationTest
     );
 
     jdbcTemplate.execute("""
-        UPDATE integration_test.notification_library_notifications
-        SET last_send_attempt_at = '%s', log_correlation_id = '%s', status = '%s'
-        WHERE id = '%s'
-        """
+          UPDATE integration_test.notification_library_notifications
+          SET last_send_attempt_at = '%s', log_correlation_id = '%s', status = '%s'
+          WHERE id = '%s'
+          """
         .formatted(
             Instant.now().minusSeconds(50),
             logCorrelationId,
@@ -120,8 +120,7 @@ class NotificationProcessingOrderIntegrationTest extends AbstractIntegrationTest
                   mostRecentLastSendAttemptAt.id()
               );
 
-          List<String> notificationStatusUpdates = jdbcTemplate.queryForList(notificationsOrderedByStatusUpdate,
-              String.class);
+          List<String> notificationStatusUpdates = jdbcTemplate.queryForList(notificationsOrderedByStatusUpdate, String.class);
 
           // assert that the notification statuses are updated in the order we expect
           assertThat(notificationStatusUpdates)
