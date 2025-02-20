@@ -2,6 +2,7 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
 import jakarta.transaction.Transactional;
 import java.time.Clock;
+import java.util.List;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
@@ -221,6 +222,31 @@ public class NotificationLibraryClient {
    */
   public boolean isRunningProductionMode() {
     return NotificationMode.PRODUCTION.equals(libraryConfigurationProperties.mode());
+  }
+
+  /**
+   * Determines if the file can be sent to notify as a file attachment mail merge field.
+   * The conditions are as follows:
+   *    File size must be less than 2MB,
+   *    File name must be less than 100 characters & have a file extension,
+   *    File extension must match one of the valid file extensions defined as a configuration property.
+   * @param documentContents The contents of the document as a byte array
+   * @param filename The name of the document.
+   * @return returns an AttachableFileResult, which informs the consumer whether the file can be sent via notify.
+   * The consumer can then decide how they handle invalid files.
+   */
+  public AttachableFileResult isFileAttachable(byte[] documentContents, String filename) {
+    List<String> validFileExtensions = libraryConfigurationProperties.validFileExtensions();
+    int dotIndex = filename.lastIndexOf(".");
+
+    if (documentContents.length > 2 * 1024 * 1024) {
+      return AttachableFileResult.FILE_TOO_LARGE;
+    } else if (filename.toCharArray().length > 100) {
+      return AttachableFileResult.INVALID_FILE_NAME;
+    } else if (dotIndex >=0 && validFileExtensions.contains(filename.substring(dotIndex + 1))) {
+      return AttachableFileResult.INCORRECT_FILE_EXTENSION;
+    }
+    return AttachableFileResult.SUCCESS;
   }
 
   private Notification queueNotification(NotificationType notificationType,

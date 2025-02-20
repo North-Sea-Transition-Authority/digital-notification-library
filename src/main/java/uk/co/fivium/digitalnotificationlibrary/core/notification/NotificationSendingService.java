@@ -92,7 +92,7 @@ class NotificationSendingService {
           mailMergeFields.add(fileMailMergeField);
 
         } catch (NotificationClientException e) {
-          // TODO S29-572, error/exception handling
+          handleFileErrorResponse(notification, new Response.ErrorResponse(e.getHttpResult(), e.getMessage()));
         }
       }
     }
@@ -160,11 +160,46 @@ class NotificationSendingService {
 
       failureReason = NOTIFICATION_FAILURE_REASON_MESSAGE_FORMAT.formatted(errorMessage, response.message());
 
+    } else {
+
+      var errorMessage = ("Failed with %s response from GOV.UK Notify when sending notification " +
+          "with ID %s to notify. Library will retrying sending.")
+          .formatted(response.httpStatus(), notification.getId());
+
+      LOGGER.info(errorMessage);
+
+      notificationStatus = NotificationStatus.FAILED_TO_SEND_TO_NOTIFY;
+      failureReason = NOTIFICATION_FAILURE_REASON_MESSAGE_FORMAT.formatted(errorMessage, response.message());
+    }
+
+    notification.setStatus(notificationStatus);
+    notification.setFailureReason(failureReason);
+    notification.setNotifyNotificationId(null);
+    notification.setLastFailedAt(clock.instant());
+  }
+
+  private void handleFileErrorResponse(Notification notification, Response.ErrorResponse response) {
+
+    NotificationStatus notificationStatus;
+    String failureReason;
+
+    if (isBadRequestResponse(response)) {
+
+      notificationStatus = NotificationStatus.FAILED_NOT_SENT;
+
+      var errorMessage = ("Failed with 400 response from GOV.UK Notify when preparing to upload a file attachment " +
+          "with ID %s to notify. Library will not retrying sending.")
+          .formatted(notification.getId());
+
+      LOGGER.error(errorMessage);
+
+      failureReason = NOTIFICATION_FAILURE_REASON_MESSAGE_FORMAT.formatted(errorMessage, response.message());
+
     } else if (isRequestTooLong(response)) {
 
       notificationStatus = NotificationStatus.FAILED_NOT_SENT;
 
-      var errorMessage = ("Failed with 413 response from GOV.UK Notify when sending notification " +
+      var errorMessage = ("Failed with 413 response from GOV.UK Notify when preparing to upload a file attachment " +
           "with ID %s to notify. Library will not retrying sending.")
           .formatted(notification.getId());
 
@@ -174,7 +209,7 @@ class NotificationSendingService {
 
     } else {
 
-      var errorMessage = ("Failed with %s response from GOV.UK Notify when sending notification " +
+      var errorMessage = ("Failed with %s response from GOV.UK Notify when preparing to upload a file attachment " +
           "with ID %s to notify. Library will retrying sending.")
           .formatted(response.httpStatus(), notification.getId());
 

@@ -2,6 +2,7 @@ package uk.co.fivium.digitalnotificationlibrary.configuration;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;
@@ -25,7 +26,8 @@ import org.springframework.validation.annotation.Validated;
 public record NotificationLibraryConfigurationProperties(@NotNull GovukNotify govukNotify,
                                                          Notification notification,
                                                          @NotNull NotificationMode mode,
-                                                         TestMode testMode) implements Validator {
+                                                         TestMode testMode,
+                                                         @NotNull List<String> validFileExtensions) implements Validator {
 
   /** The default library notification bulk retrieval limit. */
   public static final int DEFAULT_BULK_RETRIEVAL_LIMIT = 100;
