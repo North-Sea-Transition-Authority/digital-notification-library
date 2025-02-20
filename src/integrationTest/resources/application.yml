@@ -20,16 +20,3 @@ digital-notification-library:
   notification:
     poll-time-seconds: 1
   mode: production
-  valid-file-extensions:
-    - .csv
-    - .jpeg
-    - .jpg
-    - .png
-    - .xlsx
-    - .doc
-    - .docx
-    - .pdf
-    - .json
-    - .odt
-    - .rtf
-    - .txt

@@ -230,16 +230,16 @@ public class NotificationLibraryClient {
    *    File size must be less than 2MB,
    *    File name must be less than 100 characters & have a file extension,
    *    File extension must match one of the valid file extensions defined as a configuration property.
-   * @param documentContents The contents of the document as a byte array
+   * @param contentLength The length of the file content that will be attached
    * @param filename The name of the document.
    * @return returns an AttachableFileResult, which informs the consumer whether the file can be sent via notify.
    * The consumer can then decide how they handle invalid files.
    */
-  public AttachableFileResult isFileAttachable(byte[] documentContents, String filename) {
-    List<String> validFileExtensions = libraryConfigurationProperties.validFileExtensions();
+  public AttachableFileResult isFileAttachable(long contentLength, String filename) {
+    var validFileExtensions = FileAttachmentUtils.getValidFileExtensions();
     int dotIndex = filename.lastIndexOf(".");
 
-    if (documentContents.length > 2 * 1024 * 1024) {
+    if (contentLength > 2 * 1024 * 1024) {
       return AttachableFileResult.FILE_TOO_LARGE;
     } else if (filename.toCharArray().length > 100) {
       return AttachableFileResult.INVALID_FILE_NAME;
