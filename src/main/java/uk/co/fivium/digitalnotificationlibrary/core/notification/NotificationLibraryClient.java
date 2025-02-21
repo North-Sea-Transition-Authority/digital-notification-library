@@ -97,8 +97,23 @@ public class NotificationLibraryClient {
                                      EmailRecipient recipient,
                                      DomainReference domainReference,
                                      String logCorrelationId) {
-
+    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, logCorrelationId);
     return sendEmail(mergedTemplate, Set.of(), recipient, domainReference, logCorrelationId);
+  }
+
+  /**
+   * Queue an email notification to be sent.
+   * @param mergedTemplate The template with mail merge fields to send
+   * @param recipient The recipient of the notification
+   * @param domainReference A reference to the consumers domain concept the notification is for
+   * @return A representation of the notification that has been queued to send
+   */
+  @Transactional
+  public EmailNotification sendEmail(MergedTemplate mergedTemplate,
+                                     EmailRecipient recipient,
+                                     DomainReference domainReference) {
+    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, null);
+    return sendEmail(mergedTemplate, recipient, domainReference, null);
   }
 
   /**
@@ -114,6 +129,7 @@ public class NotificationLibraryClient {
                                      EmailRecipient recipient,
                                      DomainReference domainReference,
                                      String logCorrelationId) throws NotificationFileException {
+    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, logCorrelationId);
 
     if (CollectionUtils.isEmpty(mergedTemplate.getFileAttachments())) {
       throw new NotificationFileException ("File attachments not provided for email notification");
@@ -123,15 +139,14 @@ public class NotificationLibraryClient {
       var resolvedFile = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
 
       switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
-        case FILE_TOO_LARGE -> throw new NotificationFileException ("File attachment cannot be bigger than 2MB");
-        case INVALID_FILE_NAME -> throw new NotificationFileException ("File name must have 100 characters or less.");
-        case INCORRECT_FILE_EXTENSION -> throw new NotificationFileException ("File name must include a valid file extension");
+        case FILE_TOO_LARGE -> throw new NotificationFileException("File attachment cannot be bigger than 2MB");
+        case INVALID_FILE_NAME -> throw new NotificationFileException("File name must have 100 characters or less.");
+        case INCORRECT_FILE_EXTENSION -> throw new NotificationFileException("File name must include a valid file extension");
       }
     }
 
     return sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference, logCorrelationId);
   }
-
 
   /**
    * Queue an email notification to be sent.
@@ -141,9 +156,10 @@ public class NotificationLibraryClient {
    * @return A representation of the notification that has been queued to send
    */
   @Transactional
-  public EmailNotification sendEmail(MergedTemplate mergedTemplate,
+  public EmailNotification sendEmail(MergedTemplateWithFiles mergedTemplate,
                                      EmailRecipient recipient,
-                                     DomainReference domainReference) {
+                                     DomainReference domainReference) throws NotificationFileException {
+    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, null);
     return sendEmail(mergedTemplate, recipient, domainReference, null);
   }
 
@@ -231,7 +247,7 @@ public class NotificationLibraryClient {
    * Determines if the file can be sent to notify as a file attachment mail merge field.
    * The conditions are as follows:
    *    File size must be less than 2MB,
-   *    File name must be less than 100 characters & have a file extension,
+   *    File name must be less than 100 characters and have a file extension,
    *    File extension must match one of the valid file extensions defined as a configuration property.
    * @param contentLength The length of the file content that will be attached
    * @param filename The name of the document.
@@ -295,8 +311,8 @@ public class NotificationLibraryClient {
     return Set.of(TemplateType.SMS, TemplateType.UNKNOWN).contains(template.getTemplate().type());
   }
 
-  private EmailNotification sendEmail(MergedTemplate mergedTemplate, Set<FileAttachment> fileAttachments,
-                                      EmailRecipient recipient, DomainReference domainReference, String logCorrelationId) {
+  private void checkEmailConfigIsValid(MergedTemplate mergedTemplate, EmailRecipient recipient,
+                                       DomainReference domainReference, String logCorrelationId) {
     if (mergedTemplate == null) {
       throw new DigitalNotificationLibraryException("MergedTemplate must not be null");
     }
@@ -319,6 +335,10 @@ public class NotificationLibraryClient {
           "DomainReference must not be null for notification with correlation ID %s".formatted(logCorrelationId)
       );
     }
+  }
+
+  private EmailNotification sendEmail(MergedTemplate mergedTemplate, Set<FileAttachment> fileAttachments,
+                                      EmailRecipient recipient, DomainReference domainReference, String logCorrelationId) {
 
     var notification = queueNotification(
         NotificationType.EMAIL,

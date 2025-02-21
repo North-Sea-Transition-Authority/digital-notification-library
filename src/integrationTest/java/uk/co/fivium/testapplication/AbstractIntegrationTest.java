@@ -50,6 +50,10 @@ abstract class AbstractIntegrationTest {
     return getMergeTemplate(GovukNotifyTemplate.EMAIL_TEMPLATE);
   }
 
+  MergedTemplate getEmailMergeTemplateWithFiles() {
+    return getMergeTemplateWithFiles(GovukNotifyTemplate.EMAIL_TEMPLATE);
+  }
+
   MergedTemplate getSmsMergeTemplate() {
     return getMergeTemplate(GovukNotifyTemplate.SMS_TEMPLATE);
   }
@@ -59,6 +63,13 @@ abstract class AbstractIntegrationTest {
   }
 
   private MergedTemplate getMergeTemplate(GovukNotifyTemplate govukNotifyTemplate) {
+    return notificationLibraryClient.getTemplate(govukNotifyTemplate.getGovukNotifyTemplateId())
+        .withMailMergeField("name", "name-value")
+        .withMailMergeField("reference", "reference-value")
+        .merge();
+  }
+
+  private MergedTemplate getMergeTemplateWithFiles(GovukNotifyTemplate govukNotifyTemplate) {
     return notificationLibraryClient.getTemplate(govukNotifyTemplate.getGovukNotifyTemplateId())
         .withMailMergeField("name", "name-value")
         .withMailMergeField("reference", "reference-value")

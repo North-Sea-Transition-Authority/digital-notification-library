@@ -110,7 +110,7 @@ public class MergedTemplate {
      * @param fileAttachments The collection of file attachments to add
      * @return The builder
      */
-    public MergedTemplateBuilder withFileAttachments(Set<FileAttachment> fileAttachments) {
+    public MergedTemplateWithFiles.MergedTemplateWithFilesBuilder withFileAttachments(Set<FileAttachment> fileAttachments) {
       return MergedTemplateWithFiles.builder(this)
           .withFileAttachments(fileAttachments);
     }
