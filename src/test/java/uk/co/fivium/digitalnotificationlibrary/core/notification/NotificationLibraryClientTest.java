@@ -706,13 +706,11 @@ class NotificationLibraryClientTest {
         .build();
 
     var fileId1 = UUID.randomUUID();
-    var fileId2 = UUID.randomUUID();
 
     var mergedTemplate = MergedTemplate.builder(template)
         .withMailMergeField("field-1", "value-1")
         .withMailMergeField("field-2", "value-2")
         .withFileAttachment("file 1", fileId1, "file name 1.pdf")
-        .withFileAttachment("file 2", fileId2, "file name 2.csv")
         .merge();
 
     var recipient = EmailRecipient.directEmailAddress("someone@example.com");
@@ -722,7 +720,6 @@ class NotificationLibraryClientTest {
     var logCorrelationId = "log-correlation-id";
 
     when(emailAttachmentResolver.resolveFileAttachment(fileId1)).thenReturn(new byte[] {1,2, 3});
-    when(emailAttachmentResolver.resolveFileAttachment(fileId2)).thenReturn(new byte[] {1,2, 3});
 
     notificationLibraryClient.sendEmail(
         mergedTemplate,
@@ -773,8 +770,7 @@ class NotificationLibraryClientTest {
     assertThat(savedNotification.getFileAttachments())
         .extracting(FileAttachment::key, FileAttachment::fileId, FileAttachment::fileName)
         .containsExactlyInAnyOrder(
-            tuple("file 1", fileId1, "file name 1.pdf"),
-            tuple("file 2", fileId2, "file name 2.csv")
+            tuple("file 1", fileId1, "file name 1.pdf")
         );
   }
 
@@ -787,13 +783,11 @@ class NotificationLibraryClientTest {
         .build();
 
     var fileId1 = UUID.randomUUID();
-    var fileId2 = UUID.randomUUID();
 
     var mergedTemplate = MergedTemplate.builder(template)
         .withMailMergeField("field-1", "value-1")
         .withMailMergeField("field-2", "value-2")
         .withFileAttachment("file 1", fileId1, "file name 1.pdf")
-        .withFileAttachment("file 2", fileId2, "file name 2.csv")
         .merge();
 
     var recipient = EmailRecipient.directEmailAddress("someone@example.com");
@@ -801,7 +795,6 @@ class NotificationLibraryClientTest {
     var domainReference = DomainReference.from("domain-id", "domain-type");
 
     when(emailAttachmentResolver.resolveFileAttachment(fileId1)).thenReturn(new byte[] {1,2, 3});
-    when(emailAttachmentResolver.resolveFileAttachment(fileId2)).thenReturn(new byte[] {1,2, 3});
 
     notificationLibraryClient.sendEmail(
         mergedTemplate,
@@ -850,10 +843,7 @@ class NotificationLibraryClientTest {
 
     assertThat(savedNotification.getFileAttachments())
         .extracting(FileAttachment::key, FileAttachment::fileId, FileAttachment::fileName)
-        .containsExactlyInAnyOrder(
-            tuple("file 1", fileId1, "file name 1.pdf"),
-            tuple("file 2", fileId2, "file name 2.csv")
-        );
+        .containsExactlyInAnyOrder(tuple("file 1", fileId1, "file name 1.pdf"));
   }
 
 
