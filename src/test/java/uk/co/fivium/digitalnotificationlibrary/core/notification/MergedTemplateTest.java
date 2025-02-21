@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.tuple;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Named;
@@ -15,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
 
 @DisplayName("GIVEN I want to add a mail merge field to a template")
 class MergedTemplateTest {

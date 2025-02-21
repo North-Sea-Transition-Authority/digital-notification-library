@@ -502,7 +502,7 @@ class NotificationLibraryClientTest {
 
     EmailRecipient recipientWithNullOrEmptyEmail = EmailRecipient.directEmailAddress(nullOrEmptyRecipientEmail);
 
-    var mergedTemplate = givenMergedTemplate(TemplateType.EMAIL);
+    var mergedTemplate = givenMergedTemplateWithFiles(UUID.randomUUID(), "filename.pdf");
     var domainReference = DomainReference.from("id", "type");
 
     // with log correlation ID

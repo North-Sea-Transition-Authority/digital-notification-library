@@ -3,7 +3,6 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Collections;
 import java.util.Set;
@@ -144,8 +143,9 @@ class MergedTemplateWithFilesTest {
 
       var template = TemplateTestUtil.builder().build();
       var mergedTemplateBuilder = MergedTemplateWithFiles.builder(template);
+      var fileId = UUID.randomUUID();
 
-      assertThatThrownBy(() -> mergedTemplateBuilder.withFileAttachment(nullOrEmptyName, UUID.randomUUID(), "fileName"))
+      assertThatThrownBy(() -> mergedTemplateBuilder.withFileAttachment(nullOrEmptyName, fileId, "fileName"))
           .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -184,8 +184,9 @@ class MergedTemplateWithFilesTest {
 
       var template = TemplateTestUtil.builder().build();
       var mergedTemplateBuilder = MergedTemplateWithFiles.builder(template);
+      var fileId = UUID.randomUUID();
 
-      assertThatThrownBy(() -> mergedTemplateBuilder.withFileAttachment("link_to_file", UUID.randomUUID(), nullOrEmptyName))
+      assertThatThrownBy(() -> mergedTemplateBuilder.withFileAttachment("link_to_file", fileId, nullOrEmptyName))
           .isInstanceOf(IllegalArgumentException.class);
     }
 

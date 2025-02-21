@@ -135,17 +135,18 @@ public class NotificationLibraryClient {
       throw new NotificationFileException ("File attachments not provided for email notification");
     }
 
+    EmailNotification emailNotification = null;
     for(FileAttachment fileAttachment : mergedTemplate.getFileAttachments()) {
       var resolvedFile = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
-
-      switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
+       emailNotification = switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
         case FILE_TOO_LARGE -> throw new NotificationFileException("File attachment cannot be bigger than 2MB");
         case INVALID_FILE_NAME -> throw new NotificationFileException("File name must have 100 characters or less.");
         case INCORRECT_FILE_EXTENSION -> throw new NotificationFileException("File name must include a valid file extension");
-      }
+        case SUCCESS -> sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference, logCorrelationId);
+      };
     }
 
-    return sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference, logCorrelationId);
+    return emailNotification;
   }
 
   /**

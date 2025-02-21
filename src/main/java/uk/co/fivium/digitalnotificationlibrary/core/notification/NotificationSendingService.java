@@ -201,8 +201,8 @@ class NotificationSendingService {
 
       notificationStatus = NotificationStatus.FAILED_NOT_SENT;
 
-      var errorMessage = ("Failed with 413 response from GOV.UK Notify when preparing to upload a file attachment " +
-          "with ID %s to notify. Library will not retrying sending.")
+      var errorMessage = ("Failed with 413 response from GOV.UK Notify when preparing to upload a file attachment with ID %s to notify. " +
+          "Library will not retrying sending.")
           .formatted(notification.getId());
 
       LOGGER.error(errorMessage);
@@ -211,8 +211,8 @@ class NotificationSendingService {
 
     } else {
 
-      var errorMessage = ("Failed with %s response from GOV.UK Notify when preparing to upload a file attachment " +
-          "with ID %s to notify. Library will retrying sending.")
+      var errorMessage = ("Failed with %s response from GOV.UK Notify when preparing to upload a file attachment with ID %s to notify. " +
+          "Library will retrying sending.")
           .formatted(response.httpStatus(), notification.getId());
 
       LOGGER.info(errorMessage);
