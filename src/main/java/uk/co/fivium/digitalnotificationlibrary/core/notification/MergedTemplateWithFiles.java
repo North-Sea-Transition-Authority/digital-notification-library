@@ -1,8 +1,6 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -54,6 +52,7 @@ public class MergedTemplateWithFiles extends MergedTemplate {
      * @param fileName The file name which must end with a file E.g. .pdf or .csv
      * @return The builder
      */
+    @Override
     public MergedTemplateWithFilesBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
 
       if (StringUtils.isBlank(mailMergeFieldName)) {
@@ -73,6 +72,7 @@ public class MergedTemplateWithFiles extends MergedTemplate {
      * @param fileAttachments The collection of file attachments to add
      * @return The builder
      */
+    @Override
     public MergedTemplateWithFilesBuilder withFileAttachments(Set<FileAttachment> fileAttachments) {
       if (CollectionUtils.isNotEmpty(fileAttachments)) {
         fileAttachments.forEach(fileAttachment ->
@@ -82,20 +82,23 @@ public class MergedTemplateWithFiles extends MergedTemplate {
       return this;
     }
 
+    @Override
     public MergedTemplateWithFilesBuilder withMailMergeField(String name, Object value) {
       super.withMailMergeField(name, value);
       return this;
     }
 
+    @Override
     public MergedTemplateWithFilesBuilder withMailMergeFields(Set<MailMergeField> mailMergeFields) {
       super.withMailMergeFields(mailMergeFields);
       return this;
     }
 
     /**
-     * Utility method to create a new merged template.
-     * @return an instantiated merged template
+     * Utility method to create a new merged template with files.
+     * @return an instantiated merged template with files.
      */
+    @Override
     public MergedTemplateWithFiles merge() {
 
       Set<MailMergeField> mailMergeFieldSet = mailMergeFields
