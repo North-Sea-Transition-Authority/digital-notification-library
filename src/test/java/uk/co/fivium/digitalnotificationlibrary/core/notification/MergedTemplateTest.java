@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 
 @DisplayName("GIVEN I want to add a mail merge field or file attachment to a template")
 class MergedTemplateTest {
@@ -152,6 +153,46 @@ class MergedTemplateTest {
       return Stream.of(
           Arguments.of(Named.of("WHEN a null key is provided", null)),
           Arguments.of(Named.of("WHEN a empty String key is provided", ""))
+      );
+    }
+  }
+
+  @DisplayName("WHEN a file attachment id is not provided")
+  @Nested
+  class WhenNullId {
+
+    @DisplayName("THEN an exception is raised")
+    @Test
+    void withFileAttachment_whenNullOrEmptyId_thenException() {
+
+      var template = TemplateTestUtil.builder().build();
+      var mergedTemplateBuilder = MergedTemplate.builder(template);
+
+      assertThatThrownBy(() -> mergedTemplateBuilder.withFileAttachment("link_to_file", null, "fileName"))
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @DisplayName("WHEN a file attachment name is not provided")
+  @Nested
+  class WhenNullOrEmptyFileName {
+
+    @DisplayName("THEN an exception is raised")
+    @ParameterizedTest
+    @MethodSource("nullOrEmptyArguments")
+    void withFileAttachment_whenNullOrEmptyName_thenException(String nullOrEmptyName) {
+
+      var template = TemplateTestUtil.builder().build();
+      var mergedTemplateBuilder = MergedTemplate.builder(template);
+
+      assertThatThrownBy(() -> mergedTemplateBuilder.withFileAttachment("link_to_file", UUID.randomUUID(), nullOrEmptyName))
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private static Stream<Arguments> nullOrEmptyArguments() {
+      return Stream.of(
+          Arguments.of(Named.of("WHEN a null file name is provided", null)),
+          Arguments.of(Named.of("WHEN a empty String file name is provided", ""))
       );
     }
   }

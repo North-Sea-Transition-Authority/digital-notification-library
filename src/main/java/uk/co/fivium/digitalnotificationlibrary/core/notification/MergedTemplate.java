@@ -117,6 +117,8 @@ public class MergedTemplate {
         throw new IllegalArgumentException("A non empty file attachment mailMergeFieldName must be provided");
       } else if (Objects.isNull(fileId)) {
         throw new IllegalArgumentException("A non empty file attachment fileId must be provided");
+      } else if (StringUtils.isBlank(fileName)) {
+        throw new IllegalArgumentException("A non empty file attachment name must be provided");
       }
 
       fileAttachments.add(new FileAttachment(mailMergeFieldName, fileId, fileName));

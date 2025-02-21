@@ -243,7 +243,7 @@ public class NotificationLibraryClient {
       return AttachableFileResult.FILE_TOO_LARGE;
     } else if (filename.toCharArray().length > 100) {
       return AttachableFileResult.INVALID_FILE_NAME;
-    } else if (dotIndex >=0 && validFileExtensions.contains(filename.substring(dotIndex + 1))) {
+    } else if (dotIndex < 0 || !validFileExtensions.contains(filename.substring(dotIndex))) {
       return AttachableFileResult.INCORRECT_FILE_EXTENSION;
     }
     return AttachableFileResult.SUCCESS;

@@ -2,7 +2,6 @@ package uk.co.fivium.digitalnotificationlibrary.configuration;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;

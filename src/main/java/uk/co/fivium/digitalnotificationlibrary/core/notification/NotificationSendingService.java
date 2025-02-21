@@ -70,7 +70,9 @@ class NotificationSendingService {
     notificationsToSend.forEach(notificationToSend ->
         transactionTemplate.executeWithoutResult(status -> {
           var notification = addFileAttachmentsAsMailMergeFields(notificationToSend);
-          sendNotification(notification);
+          if (NotificationStatus.getAllowedStatusesForSendingANotification().contains(notification.getStatus())) {
+            sendNotification(notification);
+          }
           notificationRepository.save(notification);
         })
     );

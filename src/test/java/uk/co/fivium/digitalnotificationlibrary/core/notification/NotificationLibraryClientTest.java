@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -826,6 +827,40 @@ class NotificationLibraryClientTest {
     );
 
     assertFalse(notificationLibraryClient.isRunningProductionMode());
+  }
+
+  @Test
+  void isFileAttachable_fileTooLarge() {
+    var maxFileLength = 2 * 1024 * 1024;
+    var attachableFileResult = notificationLibraryClient.isFileAttachable(maxFileLength + 1, "validFileName.pdf");
+    assertThat(attachableFileResult).isEqualTo(AttachableFileResult.FILE_TOO_LARGE);
+  }
+
+  @Test
+  void isFileAttachable_invalidFileName() {
+    var nameWithOver100Characters = StringUtils.repeat("*", 101);
+    var attachableFileResult = notificationLibraryClient.isFileAttachable(5000, nameWithOver100Characters);
+    assertThat(attachableFileResult).isEqualTo(AttachableFileResult.INVALID_FILE_NAME);
+  }
+
+  @Test
+  void isFileAttachable_incorrectFileExtension() {
+    var invalidFileExtension = "filename.eml";
+    var attachableFileResult = notificationLibraryClient.isFileAttachable(5000, invalidFileExtension);
+    assertThat(attachableFileResult).isEqualTo(AttachableFileResult.INCORRECT_FILE_EXTENSION);
+  }
+
+  @Test
+  void isFileAttachable_noFileExtension() {
+    var noFileExtension = "filename";
+    var attachableFileResult = notificationLibraryClient.isFileAttachable(5000, noFileExtension);
+    assertThat(attachableFileResult).isEqualTo(AttachableFileResult.INCORRECT_FILE_EXTENSION);
+  }
+
+  @Test
+  void isFileAttachable_success() {
+    var attachableFileResult = notificationLibraryClient.isFileAttachable(5000, "validFileName.pdf");
+    assertThat(attachableFileResult).isEqualTo(AttachableFileResult.SUCCESS);
   }
 
   private MergedTemplate givenMergedTemplate(TemplateType type) {
