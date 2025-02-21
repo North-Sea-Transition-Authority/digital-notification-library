@@ -18,12 +18,10 @@ public class MergedTemplate {
   private final Template template;
 
   private final Set<MailMergeField> mailMergeFields;
-  private final Set<FileAttachment> fileAttachments;
 
-  private MergedTemplate(Template template, Set<MailMergeField> mailMergeFields, Set<FileAttachment> fileAttachments) {
+  protected MergedTemplate(Template template, Set<MailMergeField> mailMergeFields) {
     this.template = template;
     this.mailMergeFields = mailMergeFields;
-    this.fileAttachments = fileAttachments;
   }
 
   /**
@@ -43,14 +41,6 @@ public class MergedTemplate {
   }
 
   /**
-   * Get the field attachments for the template.
-   * @return the field attachments
-   */
-  public Set<FileAttachment> getFileAttachments() {
-    return fileAttachments;
-  }
-
-  /**
    * Get an instantiated MergedTemplateBuilder object.
    * @param template The template to use to construct this merge template
    * @return An instance of the MergedTemplateBuilder with the provided template
@@ -64,10 +54,9 @@ public class MergedTemplate {
    */
   public static class MergedTemplateBuilder {
 
-    private final Template template;
+    protected final Template template;
 
-    private final Map<String, Object> mailMergeFields = new HashMap<>();
-    private final Set<FileAttachment> fileAttachments = new HashSet<>();
+    protected final Map<String, Object> mailMergeFields = new HashMap<>();
 
     MergedTemplateBuilder(Template template) {
       this.template = template;
@@ -111,18 +100,9 @@ public class MergedTemplate {
      * @param fileName The file name which must end with a file E.g. .pdf or .csv
      * @return The builder
      */
-    public MergedTemplateBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
-
-      if (StringUtils.isBlank(mailMergeFieldName)) {
-        throw new IllegalArgumentException("A non empty file attachment mailMergeFieldName must be provided");
-      } else if (Objects.isNull(fileId)) {
-        throw new IllegalArgumentException("A non empty file attachment fileId must be provided");
-      } else if (StringUtils.isBlank(fileName)) {
-        throw new IllegalArgumentException("A non empty file attachment name must be provided");
-      }
-
-      fileAttachments.add(new FileAttachment(mailMergeFieldName, fileId, fileName));
-      return this;
+    public MergedTemplateWithFiles.MergedTemplateWithFilesBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
+      return MergedTemplateWithFiles.builder(this)
+          .withFileAttachment(mailMergeFieldName, fileId, fileName);
     }
 
     /**
@@ -131,12 +111,8 @@ public class MergedTemplate {
      * @return The builder
      */
     public MergedTemplateBuilder withFileAttachments(Set<FileAttachment> fileAttachments) {
-      if (CollectionUtils.isNotEmpty(fileAttachments)) {
-        fileAttachments.forEach(fileAttachment ->
-            withFileAttachment(fileAttachment.key(), fileAttachment.fileId(), fileAttachment.fileName())
-        );
-      }
-      return this;
+      return MergedTemplateWithFiles.builder(this)
+          .withFileAttachments(fileAttachments);
     }
 
     /**
@@ -151,7 +127,7 @@ public class MergedTemplate {
           .map(field -> new MailMergeField(field.getKey(), field.getValue()))
           .collect(Collectors.toSet());
 
-      return new MergedTemplate(template, mailMergeFieldSet, fileAttachments);
+      return new MergedTemplate(template, mailMergeFieldSet);
     }
   }
 }

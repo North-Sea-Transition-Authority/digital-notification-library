@@ -2,8 +2,8 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
 import jakarta.transaction.Transactional;
 import java.time.Clock;
-import java.util.List;
 import java.util.Set;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +30,8 @@ public class NotificationLibraryClient {
 
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
+  private final EmailAttachmentResolver emailAttachmentResolver;
+
   /**
    * Create an instance of NotificationLibraryClient.
    *
@@ -42,11 +44,13 @@ public class NotificationLibraryClient {
   public NotificationLibraryClient(NotificationLibraryNotificationRepository notificationRepository,
                                    TemplateService templateService,
                                    Clock clock,
-                                   NotificationLibraryConfigurationProperties libraryConfigurationProperties) {
+                                   NotificationLibraryConfigurationProperties libraryConfigurationProperties,
+                                   EmailAttachmentResolver emailAttachmentResolver) {
     this.notificationRepository = notificationRepository;
     this.templateService = templateService;
     this.clock = clock;
     this.libraryConfigurationProperties = libraryConfigurationProperties;
+    this.emailAttachmentResolver = emailAttachmentResolver;
   }
 
   /**
@@ -94,41 +98,40 @@ public class NotificationLibraryClient {
                                      DomainReference domainReference,
                                      String logCorrelationId) {
 
-    if (mergedTemplate == null) {
-      throw new DigitalNotificationLibraryException("MergedTemplate must not be null");
-    }
-
-    if (!isEmailTemplateType(mergedTemplate)) {
-      throw new DigitalNotificationLibraryException(
-          "Cannot send an email for template with ID %s and type %s"
-              .formatted(mergedTemplate.getTemplate().notifyTemplateId(), mergedTemplate.getTemplate().type())
-      );
-    }
-
-    if (recipient == null || StringUtils.isBlank(recipient.getEmailAddress())) {
-      throw new DigitalNotificationLibraryException(
-          "EmailRecipient must not be null or empty for notification with correlation ID %s".formatted(logCorrelationId)
-      );
-    }
-
-    if (domainReference == null) {
-      throw new DigitalNotificationLibraryException(
-          "DomainReference must not be null for notification with correlation ID %s".formatted(logCorrelationId)
-      );
-    }
-
-    var notification = queueNotification(
-        NotificationType.EMAIL,
-        recipient.getEmailAddress(),
-        domainReference,
-        logCorrelationId,
-        mergedTemplate.getMailMergeFields(),
-        mergedTemplate.getFileAttachments(),
-        mergedTemplate.getTemplate()
-    );
-
-    return new EmailNotification(String.valueOf(notification.getId()));
+    return sendEmail(mergedTemplate, Set.of(), recipient, domainReference, logCorrelationId);
   }
+
+  /**
+   * Queue an email notification with files to be sent.
+   * @param mergedTemplate The template with mail merge fields and file attachments to send
+   * @param recipient The recipient of the notification
+   * @param domainReference A reference to the consumers domain concept the notification is for
+   * @param logCorrelationId An identifier for log correlation
+   * @return A representation of the notification that has been queued to send
+   */
+  @Transactional
+  public EmailNotification sendEmail(MergedTemplateWithFiles mergedTemplate,
+                                     EmailRecipient recipient,
+                                     DomainReference domainReference,
+                                     String logCorrelationId) throws NotificationFileException {
+
+    if (CollectionUtils.isEmpty(mergedTemplate.getFileAttachments())) {
+      throw new NotificationFileException ("File attachments not provided for email notification");
+    }
+
+    for(FileAttachment fileAttachment : mergedTemplate.getFileAttachments()) {
+      var resolvedFile = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
+
+      switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
+        case FILE_TOO_LARGE -> throw new NotificationFileException ("File attachment cannot be bigger than 2MB");
+        case INVALID_FILE_NAME -> throw new NotificationFileException ("File name must have 100 characters or less.");
+        case INCORRECT_FILE_EXTENSION -> throw new NotificationFileException ("File name must include a valid file extension");
+      }
+    }
+
+    return sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference, logCorrelationId);
+  }
+
 
   /**
    * Queue an email notification to be sent.
@@ -290,5 +293,43 @@ public class NotificationLibraryClient {
 
   private boolean isSmsTemplateType(MergedTemplate template) {
     return Set.of(TemplateType.SMS, TemplateType.UNKNOWN).contains(template.getTemplate().type());
+  }
+
+  private EmailNotification sendEmail(MergedTemplate mergedTemplate, Set<FileAttachment> fileAttachments,
+                                      EmailRecipient recipient, DomainReference domainReference, String logCorrelationId) {
+    if (mergedTemplate == null) {
+      throw new DigitalNotificationLibraryException("MergedTemplate must not be null");
+    }
+
+    if (!isEmailTemplateType(mergedTemplate)) {
+      throw new DigitalNotificationLibraryException(
+          "Cannot send an email for template with ID %s and type %s"
+              .formatted(mergedTemplate.getTemplate().notifyTemplateId(), mergedTemplate.getTemplate().type())
+      );
+    }
+
+    if (recipient == null || StringUtils.isBlank(recipient.getEmailAddress())) {
+      throw new DigitalNotificationLibraryException(
+          "EmailRecipient must not be null or empty for notification with correlation ID %s".formatted(logCorrelationId)
+      );
+    }
+
+    if (domainReference == null) {
+      throw new DigitalNotificationLibraryException(
+          "DomainReference must not be null for notification with correlation ID %s".formatted(logCorrelationId)
+      );
+    }
+
+    var notification = queueNotification(
+        NotificationType.EMAIL,
+        recipient.getEmailAddress(),
+        domainReference,
+        logCorrelationId,
+        mergedTemplate.getMailMergeFields(),
+        fileAttachments,
+        mergedTemplate.getTemplate()
+    );
+
+    return new EmailNotification(String.valueOf(notification.getId()));
   }
 }

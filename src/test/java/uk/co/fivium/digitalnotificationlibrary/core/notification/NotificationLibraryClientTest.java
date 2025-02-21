@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -52,6 +53,9 @@ class NotificationLibraryClientTest {
 
   private NotificationLibraryClient notificationLibraryClient;
 
+  @Mock
+  private EmailAttachmentResolver emailAttachmentResolver;
+
   @BeforeEach
   void setup() {
     libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder().build();
@@ -59,7 +63,8 @@ class NotificationLibraryClientTest {
         notificationRepository,
         templateService,
         FIXED_CLOCK,
-        libraryConfigurationProperties
+        libraryConfigurationProperties,
+        emailAttachmentResolver
     );
   }
 
@@ -304,7 +309,7 @@ class NotificationLibraryClientTest {
   }
 
   @Test
-  void sendEmail_withLogCorrelationId_verifyQueuedNotification() {
+  void sendEmail_withFiles_withLogCorrelationId_verifyQueuedNotification() throws NotificationFileException {
 
     var template = TemplateTestUtil.builder()
         .withNotifyTemplateId("notify-template-id")
@@ -317,8 +322,8 @@ class NotificationLibraryClientTest {
     var mergedTemplate = MergedTemplate.builder(template)
         .withMailMergeField("field-1", "value-1")
         .withMailMergeField("field-2", "value-2")
-        .withFileAttachment("file 1", fileId1, "file name 1")
-        .withFileAttachment("file 2", fileId2, "file name 2")
+        .withFileAttachment("file 1", fileId1, "file name 1.pdf")
+        .withFileAttachment("file 2", fileId2, "file name 2.csv")
         .merge();
 
     var recipient = EmailRecipient.directEmailAddress("someone@example.com");
@@ -326,6 +331,9 @@ class NotificationLibraryClientTest {
     var domainReference = DomainReference.from("domain-id", "domain-type");
 
     var logCorrelationId = "log-correlation-id";
+
+    when(emailAttachmentResolver.resolveFileAttachment(fileId1)).thenReturn(new byte[] {1,2, 3});
+    when(emailAttachmentResolver.resolveFileAttachment(fileId2)).thenReturn(new byte[] {1,2, 3});
 
     notificationLibraryClient.sendEmail(
         mergedTemplate,
@@ -376,13 +384,13 @@ class NotificationLibraryClientTest {
     assertThat(savedNotification.getFileAttachments())
         .extracting(FileAttachment::key, FileAttachment::fileId, FileAttachment::fileName)
         .containsExactlyInAnyOrder(
-            tuple("file 1", fileId1, "file name 1"),
-            tuple("file 2", fileId2, "file name 2")
+            tuple("file 1", fileId1, "file name 1.pdf"),
+            tuple("file 2", fileId2, "file name 2.csv")
         );
   }
 
   @Test
-  void sendEmail_withoutLogCorrelationId_verifyQueuedNotification() {
+  void sendEmail_noFiles_withLogCorrelationId_verifyQueuedNotification() {
 
     var template = TemplateTestUtil.builder()
         .withNotifyTemplateId("notify-template-id")
@@ -395,8 +403,65 @@ class NotificationLibraryClientTest {
     var mergedTemplate = MergedTemplate.builder(template)
         .withMailMergeField("field-1", "value-1")
         .withMailMergeField("field-2", "value-2")
-        .withFileAttachment("file 1", fileId1, "file name 1")
-        .withFileAttachment("file 2", fileId2, "file name 2")
+        .merge();
+
+    var recipient = EmailRecipient.directEmailAddress("someone@example.com");
+
+    var domainReference = DomainReference.from("domain-id", "domain-type");
+
+    var logCorrelationId = "log-correlation-id";
+
+    notificationLibraryClient.sendEmail(
+        mergedTemplate,
+        recipient,
+        domainReference,
+        logCorrelationId
+    );
+
+    then(notificationRepository)
+        .should()
+        .save(notificationCaptor.capture());
+
+    var savedNotification = notificationCaptor.getValue();
+
+    assertThat(savedNotification)
+        .extracting(
+            Notification::getStatus,
+            Notification::getType,
+            Notification::getRecipient,
+            Notification::getDomainReferenceId,
+            Notification::getDomainReferenceType,
+            Notification::getNotifyTemplateId,
+            Notification::getRequestedOn,
+            Notification::getLogCorrelationId,
+            Notification::getNotifyStatus,
+            Notification::getRetryCount
+        )
+        .containsExactly(
+            NotificationStatus.QUEUED,
+            NotificationType.EMAIL,
+            recipient.getEmailAddress(),
+            domainReference.getDomainId(),
+            domainReference.getDomainType(),
+            template.notifyTemplateId(),
+            FIXED_INSTANT,
+            logCorrelationId,
+            null, // not sent to notify so no status set
+            0 // default retry count
+        );
+  }
+
+  @Test
+  void sendEmail_withoutLogCorrelationId_verifyQueuedNotification() {
+
+    var template = TemplateTestUtil.builder()
+        .withNotifyTemplateId("notify-template-id")
+        .withType(TemplateType.EMAIL)
+        .build();
+
+    var mergedTemplate = MergedTemplate.builder(template)
+        .withMailMergeField("field-1", "value-1")
+        .withMailMergeField("field-2", "value-2")
         .merge();
 
     var recipient = EmailRecipient.directEmailAddress("someone@example.com");
@@ -439,20 +504,6 @@ class NotificationLibraryClientTest {
             FIXED_INSTANT,
             null, // not sent to notify so no status set
             0 // default retry count
-        );
-
-    assertThat(savedNotification.getMailMergeFields())
-        .extracting(MailMergeField::name, MailMergeField::value)
-        .containsExactlyInAnyOrder(
-            tuple("field-1", "value-1"),
-            tuple("field-2", "value-2")
-        );
-
-    assertThat(savedNotification.getFileAttachments())
-        .extracting(FileAttachment::key, FileAttachment::fileId, FileAttachment::fileName)
-        .containsExactlyInAnyOrder(
-            tuple("file 1", fileId1, "file name 1"),
-            tuple("file 2", fileId2, "file name 2")
         );
   }
 
@@ -770,7 +821,8 @@ class NotificationLibraryClientTest {
         notificationRepository,
         templateService,
         FIXED_CLOCK,
-        libraryConfigurationProperties
+        libraryConfigurationProperties,
+        emailAttachmentResolver
     );
 
     assertTrue(notificationLibraryClient.isRunningTestMode());
@@ -788,7 +840,8 @@ class NotificationLibraryClientTest {
         notificationRepository,
         templateService,
         FIXED_CLOCK,
-        libraryConfigurationProperties
+        libraryConfigurationProperties,
+        emailAttachmentResolver
     );
 
     assertFalse(notificationLibraryClient.isRunningTestMode());
@@ -805,7 +858,8 @@ class NotificationLibraryClientTest {
         notificationRepository,
         templateService,
         FIXED_CLOCK,
-        libraryConfigurationProperties
+        libraryConfigurationProperties,
+        emailAttachmentResolver
     );
 
     assertTrue(notificationLibraryClient.isRunningProductionMode());
@@ -823,7 +877,8 @@ class NotificationLibraryClientTest {
         notificationRepository,
         templateService,
         FIXED_CLOCK,
-        libraryConfigurationProperties
+        libraryConfigurationProperties,
+        emailAttachmentResolver
     );
 
     assertFalse(notificationLibraryClient.isRunningProductionMode());

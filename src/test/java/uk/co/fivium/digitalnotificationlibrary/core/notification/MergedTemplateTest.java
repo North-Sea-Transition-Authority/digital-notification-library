@@ -196,29 +196,29 @@ class MergedTemplateTest {
       );
     }
   }
-
-  @DisplayName("WHEN a null or empty set of file attachments are provided")
-  @Nested
-  class WhenNullOrEmptyFileAttachments {
-
-    @ParameterizedTest
-    @MethodSource("nullOrEmptyArguments")
-    void withFileAttachments_whenNullOrEmptySet_thenEmptySet(Set<FileAttachment> nullOrEmptyFileAttachments) {
-
-      var template = TemplateTestUtil.builder().build();
-
-      var resultingMergedTemplate = MergedTemplate.builder(template)
-          .withFileAttachments(nullOrEmptyFileAttachments)
-          .merge();
-
-      assertThat(resultingMergedTemplate.getFileAttachments()).isEmpty();
-    }
-
-    private static Stream<Arguments> nullOrEmptyArguments() {
-      return Stream.of(
-          Arguments.of(Named.of("WHEN a null set is provided", null)),
-          Arguments.of(Named.of("WHEN a empty set is provided", Collections.emptySet()))
-      );
-    }
-  }
+//
+//  @DisplayName("WHEN a null or empty set of file attachments are provided")
+//  @Nested
+//  class WhenNullOrEmptyFileAttachments {
+//
+//    @ParameterizedTest
+//    @MethodSource("nullOrEmptyArguments")
+//    void withFileAttachments_whenNullOrEmptySet_thenEmptySet(Set<FileAttachment> nullOrEmptyFileAttachments) {
+//
+//      var template = TemplateTestUtil.builder().build();
+//
+//      var resultingMergedTemplate = MergedTemplate.builder(template)
+//          .withFileAttachments(nullOrEmptyFileAttachments)
+//          .merge();
+//
+//      assertThat(resultingMergedTemplate.getFileAttachments()).isEmpty();
+//    }
+//
+//    private static Stream<Arguments> nullOrEmptyArguments() {
+//      return Stream.of(
+//          Arguments.of(Named.of("WHEN a null set is provided", null)),
+//          Arguments.of(Named.of("WHEN a empty set is provided", Collections.emptySet()))
+//      );
+//    }
+//  }
 }

@@ -246,6 +246,7 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
     }
   }
 
+  // TODO have emails with and without file attachments
   private EmailNotification sendEmail(EmailRecipient emailRecipient, String logCorrelationId) {
 
     var mergedTemplate = getEmailMergeTemplate();
