@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -68,7 +70,7 @@ class NotificationSendingServiceTest {
   private ArgumentCaptor<Notification> notificationCaptor;
 
   private static NotificationSendingService notificationSendingService;
-
+  private static MockedStatic mockedStatic;
 
   @BeforeAll
   static void beforeAllSetup() {
@@ -79,13 +81,13 @@ class NotificationSendingServiceTest {
 
     transactionManager = mock(PlatformTransactionManager.class);
     emailAttachmentResolver = mock(EmailAttachmentResolver.class);
-    mockStatic(NotificationClient.class);
   }
 
   @BeforeEach
   void beforeEachSetup() {
 
     notificationRepository = mock(NotificationLibraryNotificationRepository.class);
+    mockedStatic = mockStatic(NotificationClient.class);
 
     notificationSendingService = new NotificationSendingService(
         transactionManager,
@@ -95,6 +97,11 @@ class NotificationSendingServiceTest {
         FIXED_CLOCK,
         emailAttachmentResolver
     );
+  }
+
+  @AfterEach
+  void cleanup() {
+    mockedStatic.close();
   }
 
   @DisplayName("WHEN no custom bulk retrieval value provided")
