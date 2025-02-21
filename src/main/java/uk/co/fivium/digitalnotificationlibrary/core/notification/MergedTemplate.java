@@ -98,7 +98,9 @@ public class MergedTemplate {
      * @param fileName The file name which must end with a file E.g. .pdf or .csv
      * @return The builder
      */
-    public MergedTemplateWithFiles.MergedTemplateWithFilesBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
+    public MergedTemplateWithFiles.MergedTemplateWithFilesBuilder withFileAttachment(String mailMergeFieldName,
+                                                                                     UUID fileId,
+                                                                                     String fileName) {
       return MergedTemplateWithFiles.builder(this)
           .withFileAttachment(mailMergeFieldName, fileId, fileName);
     }

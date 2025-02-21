@@ -13,7 +13,7 @@ public class EmailAttachmentResolverTestImpl implements EmailAttachmentResolver 
 
   public byte[] resolveFileAttachment(UUID fileId) {
     var initialFile = new File("src/main/resources/TestDocument.pdf");
-    try (var fileInputStream = new FileInputStream(initialFile)){
+    try (var fileInputStream = new FileInputStream(initialFile)) {
       return fileInputStream.readAllBytes();
     } catch (IOException e) {
       throw new RuntimeException(e);

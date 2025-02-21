@@ -23,7 +23,7 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
 
   @DisplayName("AND I do not want any file attachments")
   @Nested
-  class whenNoFileAttachments {
+  class WhenNoFileAttachments {
 
     @DisplayName("WHEN notify sends the email successfully")
     @Nested
@@ -33,7 +33,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
       @Test
       void thenTheEmailIsOnlySentOnce() {
 
-        var logCorrelationId = "sendEmail_whenSentSuccessfully_thenTheEmailIsOnlySentOnce-%s".formatted(UUID.randomUUID());
+        var logCorrelationId = "sendEmail_whenSentSuccessfully_thenTheEmailIsOnlySentOnce-%s".formatted(
+            UUID.randomUUID());
 
         sendEmailWithOutFiles(EmailRecipient.directEmailAddress("tess.mann@fivium.co.uk"), logCorrelationId);
 
@@ -68,7 +69,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
       @Test
       void thenTheEmailIsNotRetried() {
 
-        var logCorrelationId = "sendEmail_whenPermanentFailure_thenTheEmailIsNotRetried-%s".formatted(UUID.randomUUID());
+        var logCorrelationId = "sendEmail_whenPermanentFailure_thenTheEmailIsNotRetried-%s".formatted(
+            UUID.randomUUID());
 
         sendEmailWithOutFiles(PERMANENT_FAILURE_EMAIL_RECIPIENT, logCorrelationId);
 
@@ -136,7 +138,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
         @Test
         void thenEmailWillBeSentSecondTime() {
 
-          var logCorrelationId = "sendEmail_whenSuccessfulOnRetry_thenEmailWillBeSentSecondTime-%s".formatted(UUID.randomUUID());
+          var logCorrelationId = "sendEmail_whenSuccessfulOnRetry_thenEmailWillBeSentSecondTime-%s".formatted(
+              UUID.randomUUID());
 
           // GIVEN an email which results in a temporary failure
           EmailNotification sentEmail = sendEmailWithOutFiles(TEMPORARY_FAILURE_EMAIL_RECIPIENT, logCorrelationId);
@@ -161,10 +164,10 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
 
           // WHEN we update the recipient to a recipient that will send successfully
           jdbcTemplate.execute("""
-          UPDATE integration_test.notification_library_notifications
-          SET recipient = 'tess.mann@fivium.co.uk', retry_count = 0, last_send_attempt_at = '%s'
-          WHERE id = '%s'
-             """.formatted(Instant.now().minusSeconds(60), sentEmail.id())
+              UPDATE integration_test.notification_library_notifications
+              SET recipient = 'tess.mann@fivium.co.uk', retry_count = 0, last_send_attempt_at = '%s'
+              WHERE id = '%s'
+                 """.formatted(Instant.now().minusSeconds(60), sentEmail.id())
           );
 
           // THEN notify will send the email
@@ -195,7 +198,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
         @Test
         void thenEmailWillNotBeRetried() {
 
-          var logCorrelationId = "sendEmail_whenMaxRetryTimeExceeded_thenEmailWillNotBeRetried-%s".formatted(UUID.randomUUID());
+          var logCorrelationId = "sendEmail_whenMaxRetryTimeExceeded_thenEmailWillNotBeRetried-%s".formatted(
+              UUID.randomUUID());
 
           // GIVEN an email which results in a temporary failure
           EmailNotification sentEmail = sendEmailWithOutFiles(TEMPORARY_FAILURE_EMAIL_RECIPIENT, logCorrelationId);
@@ -222,12 +226,12 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
 
           // WHEN we update the recipient to a recipient that will send successfully
           jdbcTemplate.execute("""
-          UPDATE integration_test.notification_library_notifications
-          SET
-            recipient = 'tess.mann@fivium.co.uk', --reset recipient so test will fail if it sends
-            requested_on = '%s'
-          WHERE id = '%s'
-            """.formatted(overThreeDaysAgo, sentEmail.id())
+              UPDATE integration_test.notification_library_notifications
+              SET
+                recipient = 'tess.mann@fivium.co.uk', --reset recipient so test will fail if it sends
+                requested_on = '%s'
+              WHERE id = '%s'
+                """.formatted(overThreeDaysAgo, sentEmail.id())
           );
 
           await()
@@ -275,7 +279,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
       @Test
       void thenTheEmailIsOnlySentOnce() {
 
-        var logCorrelationId = "sendEmail_whenSentSuccessfully_thenTheEmailIsOnlySentOnce-%s".formatted(UUID.randomUUID());
+        var logCorrelationId = "sendEmail_whenSentSuccessfully_thenTheEmailIsOnlySentOnce-%s".formatted(
+            UUID.randomUUID());
 
         sendEmailWithFiles(EmailRecipient.directEmailAddress("tess.mann@fivium.co.uk"), logCorrelationId);
 
@@ -310,7 +315,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
       @Test
       void thenTheEmailIsNotRetried() {
 
-        var logCorrelationId = "sendEmail_whenPermanentFailure_thenTheEmailIsNotRetried-%s".formatted(UUID.randomUUID());
+        var logCorrelationId = "sendEmail_whenPermanentFailure_thenTheEmailIsNotRetried-%s".formatted(
+            UUID.randomUUID());
 
         sendEmailWithFiles(PERMANENT_FAILURE_EMAIL_RECIPIENT, logCorrelationId);
 
@@ -378,7 +384,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
         @Test
         void thenEmailWillBeSentSecondTime() {
 
-          var logCorrelationId = "sendEmail_whenSuccessfulOnRetry_thenEmailWillBeSentSecondTime-%s".formatted(UUID.randomUUID());
+          var logCorrelationId = "sendEmail_whenSuccessfulOnRetry_thenEmailWillBeSentSecondTime-%s".formatted(
+              UUID.randomUUID());
 
           // GIVEN an email which results in a temporary failure
           EmailNotification sentEmail = sendEmailWithFiles(TEMPORARY_FAILURE_EMAIL_RECIPIENT, logCorrelationId);
@@ -403,10 +410,10 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
 
           // WHEN we update the recipient to a recipient that will send successfully
           jdbcTemplate.execute("""
-          UPDATE integration_test.notification_library_notifications
-          SET recipient = 'tess.mann@fivium.co.uk', retry_count = 0, last_send_attempt_at = '%s'
-          WHERE id = '%s'
-             """.formatted(Instant.now().minusSeconds(60), sentEmail.id())
+              UPDATE integration_test.notification_library_notifications
+              SET recipient = 'tess.mann@fivium.co.uk', retry_count = 0, last_send_attempt_at = '%s'
+              WHERE id = '%s'
+                 """.formatted(Instant.now().minusSeconds(60), sentEmail.id())
           );
 
           // THEN notify will send the email
@@ -437,7 +444,8 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
         @Test
         void thenEmailWillNotBeRetried() {
 
-          var logCorrelationId = "sendEmail_whenMaxRetryTimeExceeded_thenEmailWillNotBeRetried-%s".formatted(UUID.randomUUID());
+          var logCorrelationId = "sendEmail_whenMaxRetryTimeExceeded_thenEmailWillNotBeRetried-%s".formatted(
+              UUID.randomUUID());
 
           // GIVEN an email which results in a temporary failure
           EmailNotification sentEmail = sendEmailWithFiles(TEMPORARY_FAILURE_EMAIL_RECIPIENT, logCorrelationId);
@@ -464,12 +472,12 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
 
           // WHEN we update the recipient to a recipient that will send successfully
           jdbcTemplate.execute("""
-          UPDATE integration_test.notification_library_notifications
-          SET
-            recipient = 'tess.mann@fivium.co.uk', --reset recipient so test will fail if it sends
-            requested_on = '%s'
-          WHERE id = '%s'
-            """.formatted(overThreeDaysAgo, sentEmail.id())
+              UPDATE integration_test.notification_library_notifications
+              SET
+                recipient = 'tess.mann@fivium.co.uk', --reset recipient so test will fail if it sends
+                requested_on = '%s'
+              WHERE id = '%s'
+                """.formatted(overThreeDaysAgo, sentEmail.id())
           );
 
           await()

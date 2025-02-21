@@ -35,9 +35,9 @@ public class NotificationLibraryClient {
   /**
    * Create an instance of NotificationLibraryClient.
    *
-   * @param notificationRepository The notification repository
-   * @param templateService The service for retrieving templates
-   * @param clock The clock instance
+   * @param notificationRepository         The notification repository
+   * @param templateService                The service for retrieving templates
+   * @param clock                          The clock instance
    * @param libraryConfigurationProperties The configuration properties for the library
    */
   @Autowired
@@ -86,9 +86,10 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an email notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
-   * @param domainReference A reference to the consumers domain concept the notification is for
+   *
+   * @param mergedTemplate   The template with mail merge fields to send
+   * @param recipient        The recipient of the notification
+   * @param domainReference  A reference to the consumers domain concept the notification is for
    * @param logCorrelationId An identifier for log correlation
    * @return A representation of the notification that has been queued to send
    */
@@ -103,8 +104,9 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an email notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
+   *
+   * @param mergedTemplate  The template with mail merge fields to send
+   * @param recipient       The recipient of the notification
    * @param domainReference A reference to the consumers domain concept the notification is for
    * @return A representation of the notification that has been queued to send
    */
@@ -118,9 +120,10 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an email notification with files to be sent.
-   * @param mergedTemplate The template with mail merge fields and file attachments to send
-   * @param recipient The recipient of the notification
-   * @param domainReference A reference to the consumers domain concept the notification is for
+   *
+   * @param mergedTemplate   The template with mail merge fields and file attachments to send
+   * @param recipient        The recipient of the notification
+   * @param domainReference  A reference to the consumers domain concept the notification is for
    * @param logCorrelationId An identifier for log correlation
    * @return A representation of the notification that has been queued to send
    */
@@ -132,17 +135,19 @@ public class NotificationLibraryClient {
     checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, logCorrelationId);
 
     if (CollectionUtils.isEmpty(mergedTemplate.getFileAttachments())) {
-      throw new NotificationFileException ("File attachments not provided for email notification");
+      throw new NotificationFileException("File attachments not provided for email notification");
     }
 
     EmailNotification emailNotification = null;
-    for(FileAttachment fileAttachment : mergedTemplate.getFileAttachments()) {
+    for (FileAttachment fileAttachment : mergedTemplate.getFileAttachments()) {
       var resolvedFile = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
-       emailNotification = switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
+      emailNotification = switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
         case FILE_TOO_LARGE -> throw new NotificationFileException("File attachment cannot be bigger than 2MB");
         case INVALID_FILE_NAME -> throw new NotificationFileException("File name must have 100 characters or less.");
-        case INCORRECT_FILE_EXTENSION -> throw new NotificationFileException("File name must include a valid file extension");
-        case SUCCESS -> sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference, logCorrelationId);
+        case INCORRECT_FILE_EXTENSION ->
+            throw new NotificationFileException("File name must include a valid file extension");
+        case SUCCESS -> sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference,
+            logCorrelationId);
       };
     }
 
@@ -151,8 +156,9 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an email notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
+   *
+   * @param mergedTemplate  The template with mail merge fields to send
+   * @param recipient       The recipient of the notification
    * @param domainReference A reference to the consumers domain concept the notification is for
    * @return A representation of the notification that has been queued to send
    */
@@ -166,9 +172,10 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an sms notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
-   * @param domainReference A reference to the consumers domain concept the notification is for
+   *
+   * @param mergedTemplate   The template with mail merge fields to send
+   * @param recipient        The recipient of the notification
+   * @param domainReference  A reference to the consumers domain concept the notification is for
    * @param logCorrelationId An identifier for log correlation
    * @return A representation of the notification that has been queued to send
    */
@@ -216,8 +223,9 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an sms notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
+   *
+   * @param mergedTemplate  The template with mail merge fields to send
+   * @param recipient       The recipient of the notification
    * @param domainReference A reference to the consumers domain concept the notification is for
    * @return A representation of the notification that has been queued to send
    */
@@ -230,6 +238,7 @@ public class NotificationLibraryClient {
 
   /**
    * Determines if the library is running in test mode.
+   *
    * @return returns true if running in test mode, false otherwise
    */
   public boolean isRunningTestMode() {
@@ -238,6 +247,7 @@ public class NotificationLibraryClient {
 
   /**
    * Determines if the library is running in production mode.
+   *
    * @return returns true if running in production mode, false otherwise
    */
   public boolean isRunningProductionMode() {
@@ -247,13 +257,14 @@ public class NotificationLibraryClient {
   /**
    * Determines if the file can be sent to notify as a file attachment mail merge field.
    * The conditions are as follows:
-   *    File size must be less than 2MB,
-   *    File name must be less than 100 characters and have a file extension,
-   *    File extension must match one of the valid file extensions defined as a configuration property.
+   * File size must be less than 2MB,
+   * File name must be less than 100 characters and have a file extension,
+   * File extension must match one of the valid file extensions defined as a configuration property.
+   *
    * @param contentLength The length of the file content that will be attached
-   * @param filename The name of the document.
+   * @param filename      The name of the document.
    * @return returns an AttachableFileResult, which informs the consumer whether the file can be sent via notify.
-   * The consumer can then decide how they handle invalid files.
+   *         The consumer can then decide how they handle invalid files
    */
   public AttachableFileResult isFileAttachable(long contentLength, String filename) {
     var validFileExtensions = FileAttachmentUtils.getValidFileExtensions();
@@ -339,7 +350,8 @@ public class NotificationLibraryClient {
   }
 
   private EmailNotification sendEmail(MergedTemplate mergedTemplate, Set<FileAttachment> fileAttachments,
-                                      EmailRecipient recipient, DomainReference domainReference, String logCorrelationId) {
+                                      EmailRecipient recipient, DomainReference domainReference,
+                                      String logCorrelationId) {
 
     var notification = queueNotification(
         NotificationType.EMAIL,
