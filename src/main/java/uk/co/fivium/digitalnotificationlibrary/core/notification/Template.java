@@ -3,6 +3,7 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import uk.co.fivium.digitalnotificationlibrary.core.DigitalNotificationLibraryException;
 
 /**
@@ -39,6 +40,19 @@ public record Template(
     return new MergedTemplate.MergedTemplateBuilder(this)
         .withMailMergeField(key, value);
   }
+
+  /**
+   * Add a file attachment to the template.
+   * @param mailMergeFieldName The name of the mail merge field for this attachment
+   * @param fileId The id of the file
+   * @param fileName The file name which must end with a file E.g. .pdf or .csv
+   * @return A merged template builder
+   */
+  public MergedTemplate.MergedTemplateBuilder withFileAttachment(String mailMergeFieldName, UUID fileId, String fileName) {
+    return new MergedTemplate.MergedTemplateBuilder(this)
+        .withFileAttachment(mailMergeFieldName, fileId, fileName);
+  }
+
 
   static Template createUnconfirmedTemplate(String notifyTemplateId) {
     return new Template(

@@ -1,11 +1,16 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +21,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +39,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.ResourceUtils;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationPropertiesTestUtil;
+import uk.gov.service.notify.NotificationClient;
+import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 import uk.gov.service.notify.SendSmsResponse;
 
@@ -53,10 +62,13 @@ class NotificationSendingServiceTest {
 
   private static NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
+  private static EmailAttachmentResolver emailAttachmentResolver;
+
   @Captor
   private ArgumentCaptor<Notification> notificationCaptor;
 
   private static NotificationSendingService notificationSendingService;
+
 
   @BeforeAll
   static void beforeAllSetup() {
@@ -66,6 +78,8 @@ class NotificationSendingServiceTest {
     govukNotifyService = mock(TestGovukNotifySender.class);
 
     transactionManager = mock(PlatformTransactionManager.class);
+    emailAttachmentResolver = mock(EmailAttachmentResolver.class);
+    mockStatic(NotificationClient.class);
   }
 
   @BeforeEach
@@ -78,7 +92,8 @@ class NotificationSendingServiceTest {
         notificationRepository,
         govukNotifyService,
         libraryConfigurationProperties,
-        FIXED_CLOCK
+        FIXED_CLOCK,
+        emailAttachmentResolver
     );
   }
 
@@ -99,7 +114,8 @@ class NotificationSendingServiceTest {
           notificationRepository,
           govukNotifyService,
           libraryConfigurationProperties,
-          FIXED_CLOCK
+          FIXED_CLOCK,
+          emailAttachmentResolver
       );
 
       notificationSendingService.sendNotificationsToNotify();
@@ -129,7 +145,8 @@ class NotificationSendingServiceTest {
             notificationRepository,
             govukNotifyService,
             libraryConfigurationProperties,
-            FIXED_CLOCK
+            FIXED_CLOCK,
+            emailAttachmentResolver
         );
 
         notificationSendingService.sendNotificationsToNotify();
@@ -161,7 +178,8 @@ class NotificationSendingServiceTest {
           notificationRepository,
           govukNotifyService,
           libraryConfigurationProperties,
-          FIXED_CLOCK
+          FIXED_CLOCK,
+          emailAttachmentResolver
       );
 
       notificationSendingService.sendNotificationsToNotify();
@@ -203,12 +221,15 @@ class NotificationSendingServiceTest {
 
       @DisplayName("THEN the email is sent to notify")
       @Test
-      void whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException {
+      void whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException, NotificationClientException {
+        var fileId = UUID.randomUUID();
+        var fileName = "fileName";
 
         var queuedNotification = NotificationTestUtil.builder()
             .withType(NotificationType.EMAIL)
             .withStatus(NotificationStatus.QUEUED)
             .withLastSendAttemptAt(null)
+            .withFileAttachment("link_to_file", fileId, fileName)
             .build();
 
         givenDatabaseReturnsNotification(queuedNotification);
@@ -221,6 +242,13 @@ class NotificationSendingServiceTest {
 
         given(govukNotifyService.sendEmail(queuedNotification))
             .willReturn(expectedEmailResponse);
+
+        var fileContents = new byte[] {1, 2, 3};
+        given(emailAttachmentResolver.resolveFileAttachment(fileId)).willReturn(fileContents);
+        var uploadedFile = new JSONObject();
+        uploadedFile.put("link_to_file", fileId);
+
+        given(NotificationClient.prepareUpload(fileContents, fileName)).willReturn(uploadedFile);
 
         notificationSendingService.sendNotificationsToNotify();
 
@@ -245,6 +273,10 @@ class NotificationSendingServiceTest {
         assertThat(savedNotification)
             .extracting(Notification::getFailureReason, Notification::getRetryCount, Notification::getLastFailedAt)
             .containsOnlyNulls();
+
+        assertThat(savedNotification.getMailMergeFields())
+            .extracting(MailMergeField::name, MailMergeField::value)
+            .containsExactly(tuple("link_to_file", uploadedFile));
       }
     }
 
@@ -302,6 +334,9 @@ class NotificationSendingServiceTest {
                 1, // as successfully sent again the retry count is incremented by 1,
                 yesterday
             );
+
+        verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
+        verifyNoInteractions(NotificationClient.class);
       }
 
       @DisplayName("THEN the email is sent to notify for its next retry attempt")
@@ -354,6 +389,9 @@ class NotificationSendingServiceTest {
                 2, // as successfully sent again the retry count is incremented by 1
                 yesterday
             );
+
+        verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
+        verifyNoInteractions(NotificationClient.class);
       }
     }
 
@@ -405,6 +443,8 @@ class NotificationSendingServiceTest {
         assertThat(savedNotification)
             .extracting(Notification::getFailureReason, Notification::getRetryCount, Notification::getLastFailedAt)
             .containsOnlyNulls();
+
+        verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
       }
     }
 
@@ -462,6 +502,8 @@ class NotificationSendingServiceTest {
                 1, // as successfully sent again the retry count is incremented by 1
                 yesterday
             );
+
+        verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
       }
 
       @DisplayName("THEN the sms is sent to notify for its next retry attempt")
@@ -514,6 +556,8 @@ class NotificationSendingServiceTest {
                 2, // as successfully sent again the retry count is incremented by 1
                 yesterday
             );
+
+        verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
       }
     }
   }

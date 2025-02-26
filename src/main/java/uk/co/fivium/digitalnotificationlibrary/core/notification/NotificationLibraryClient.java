@@ -122,6 +122,7 @@ public class NotificationLibraryClient {
         domainReference,
         logCorrelationId,
         mergedTemplate.getMailMergeFields(),
+        mergedTemplate.getFileAttachments(),
         mergedTemplate.getTemplate()
     );
 
@@ -185,6 +186,7 @@ public class NotificationLibraryClient {
         domainReference,
         logCorrelationId,
         mergedTemplate.getMailMergeFields(),
+        Set.of(),
         mergedTemplate.getTemplate()
     );
 
@@ -226,6 +228,7 @@ public class NotificationLibraryClient {
                                          DomainReference domainReference,
                                          String logCorrelationId,
                                          Set<MailMergeField> mailMergeFields,
+                                         Set<FileAttachment> fileAttachments,
                                          Template template) {
 
     var notification = new Notification();
@@ -238,6 +241,7 @@ public class NotificationLibraryClient {
     notification.setNotifyTemplateId(template.notifyTemplateId());
     notification.setRequestedOn(clock.instant());
     notification.setRetryCount(0);
+    notification.setFileAttachments(fileAttachments);
 
     if (StringUtils.isNotBlank(logCorrelationId)) {
       notification.setLogCorrelationId(logCorrelationId);

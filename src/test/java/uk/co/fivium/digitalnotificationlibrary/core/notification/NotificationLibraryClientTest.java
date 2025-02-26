@@ -310,9 +310,14 @@ class NotificationLibraryClientTest {
         .withType(TemplateType.EMAIL)
         .build();
 
+    var fileId1 = UUID.randomUUID();
+    var fileId2 = UUID.randomUUID();
+
     var mergedTemplate = MergedTemplate.builder(template)
         .withMailMergeField("field-1", "value-1")
         .withMailMergeField("field-2", "value-2")
+        .withFileAttachment("file 1", fileId1, "file name 1")
+        .withFileAttachment("file 2", fileId2, "file name 2")
         .merge();
 
     var recipient = EmailRecipient.directEmailAddress("someone@example.com");
@@ -366,6 +371,13 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
+
+    assertThat(savedNotification.getFileAttachments())
+        .extracting(FileAttachment::key, FileAttachment::fileId, FileAttachment::fileName)
+        .containsExactlyInAnyOrder(
+            tuple("file 1", fileId1, "file name 1"),
+            tuple("file 2", fileId2, "file name 2")
+        );
   }
 
   @Test
@@ -376,9 +388,14 @@ class NotificationLibraryClientTest {
         .withType(TemplateType.EMAIL)
         .build();
 
+    var fileId1 = UUID.randomUUID();
+    var fileId2 = UUID.randomUUID();
+
     var mergedTemplate = MergedTemplate.builder(template)
         .withMailMergeField("field-1", "value-1")
         .withMailMergeField("field-2", "value-2")
+        .withFileAttachment("file 1", fileId1, "file name 1")
+        .withFileAttachment("file 2", fileId2, "file name 2")
         .merge();
 
     var recipient = EmailRecipient.directEmailAddress("someone@example.com");
@@ -428,6 +445,13 @@ class NotificationLibraryClientTest {
         .containsExactlyInAnyOrder(
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
+        );
+
+    assertThat(savedNotification.getFileAttachments())
+        .extracting(FileAttachment::key, FileAttachment::fileId, FileAttachment::fileName)
+        .containsExactlyInAnyOrder(
+            tuple("file 1", fileId1, "file name 1"),
+            tuple("file 2", fileId2, "file name 2")
         );
   }
 
@@ -665,6 +689,8 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
+
+    assertThat(savedNotification.getFileAttachments()).isEmpty();
   }
 
   @Test
@@ -728,6 +754,8 @@ class NotificationLibraryClientTest {
             tuple("field-1", "value-1"),
             tuple("field-2", "value-2")
         );
+
+    assertThat(savedNotification.getFileAttachments()).isEmpty();
   }
 
   @Test

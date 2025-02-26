@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
+import uk.gov.service.notify.NotificationClient;
+import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 import uk.gov.service.notify.SendSmsResponse;
 
@@ -33,17 +36,21 @@ class NotificationSendingService {
 
   private final Clock clock;
 
+  private final EmailAttachmentResolver emailAttachmentResolver;
+
   @Autowired
   NotificationSendingService(PlatformTransactionManager transactionManager,
                              NotificationLibraryNotificationRepository notificationRepository,
                              GovukNotifySender govukNotifySender,
                              NotificationLibraryConfigurationProperties libraryConfigurationProperties,
-                             Clock clock) {
+                             Clock clock,
+                             EmailAttachmentResolver emailAttachmentResolver) {
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.notificationRepository = notificationRepository;
     this.govukNotifySender = govukNotifySender;
     this.libraryConfigurationProperties = libraryConfigurationProperties;
     this.clock = clock;
+    this.emailAttachmentResolver = emailAttachmentResolver;
   }
 
   void sendNotificationsToNotify() {
@@ -62,13 +69,37 @@ class NotificationSendingService {
 
     notificationsToSend.forEach(notificationToSend ->
         transactionTemplate.executeWithoutResult(status -> {
-          var notification = sendNotification(notificationToSend);
+          var notification = addFileAttachmentsAsMailMergeFields(notificationToSend);
+          sendNotification(notification);
           notificationRepository.save(notification);
         })
     );
   }
 
-  private Notification sendNotification(Notification notification) {
+  private Notification addFileAttachmentsAsMailMergeFields(Notification notification) {
+    if (CollectionUtils.isNotEmpty(notification.getFileAttachments())
+        && NotificationStatus.QUEUED.equals(notification.getStatus())) {
+
+      for (FileAttachment fileAttachment : notification.getFileAttachments()) {
+        byte[] fileContents;
+        try {
+          fileContents = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
+          var mailMergeFields = notification.getMailMergeFields();
+          var fileMailMergeField = new MailMergeField(
+              fileAttachment.key(),
+              NotificationClient.prepareUpload(fileContents, fileAttachment.fileName())
+          );
+          mailMergeFields.add(fileMailMergeField);
+
+        } catch (NotificationClientException e) {
+          // TODO S29-572, error/exception handling
+        }
+      }
+    }
+    return notification;
+  }
+
+  private void sendNotification(Notification notification) {
 
     if (NotificationStatus.RETRY.equals(notification.getStatus())) {
       notification.setRetryCount(notification.getRetryCount() + 1);
@@ -98,8 +129,6 @@ class NotificationSendingService {
         }
       }
     }
-
-    return notification;
   }
 
   private void handleErrorResponse(Notification notification, Response.ErrorResponse response) {
