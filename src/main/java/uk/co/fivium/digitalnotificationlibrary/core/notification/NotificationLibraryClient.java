@@ -3,6 +3,7 @@ package uk.co.fivium.digitalnotificationlibrary.core.notification;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.util.Set;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,23 +30,27 @@ public class NotificationLibraryClient {
 
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
+  private final NotificationLibraryEmailAttachmentResolver emailAttachmentResolver;
+
   /**
    * Create an instance of NotificationLibraryClient.
    *
-   * @param notificationRepository The notification repository
-   * @param templateService The service for retrieving templates
-   * @param clock The clock instance
+   * @param notificationRepository         The notification repository
+   * @param templateService                The service for retrieving templates
+   * @param clock                          The clock instance
    * @param libraryConfigurationProperties The configuration properties for the library
    */
   @Autowired
   public NotificationLibraryClient(NotificationLibraryNotificationRepository notificationRepository,
                                    TemplateService templateService,
                                    Clock clock,
-                                   NotificationLibraryConfigurationProperties libraryConfigurationProperties) {
+                                   NotificationLibraryConfigurationProperties libraryConfigurationProperties,
+                                   NotificationLibraryEmailAttachmentResolver emailAttachmentResolver) {
     this.notificationRepository = notificationRepository;
     this.templateService = templateService;
     this.clock = clock;
     this.libraryConfigurationProperties = libraryConfigurationProperties;
+    this.emailAttachmentResolver = emailAttachmentResolver;
   }
 
   /**
@@ -81,9 +86,10 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an email notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
-   * @param domainReference A reference to the consumers domain concept the notification is for
+   *
+   * @param mergedTemplate   The template with mail merge fields to send
+   * @param recipient        The recipient of the notification
+   * @param domainReference  A reference to the consumers domain concept the notification is for
    * @param logCorrelationId An identifier for log correlation
    * @return A representation of the notification that has been queued to send
    */
@@ -93,46 +99,20 @@ public class NotificationLibraryClient {
                                      DomainReference domainReference,
                                      String logCorrelationId) {
 
-    if (mergedTemplate == null) {
-      throw new DigitalNotificationLibraryException("MergedTemplate must not be null");
-    }
-
-    if (!isEmailTemplateType(mergedTemplate)) {
+    if (mergedTemplate instanceof MergedTemplateWithFiles) {
       throw new DigitalNotificationLibraryException(
-          "Cannot send an email for template with ID %s and type %s"
-              .formatted(mergedTemplate.getTemplate().notifyTemplateId(), mergedTemplate.getTemplate().type())
-      );
+          "MergedTemplate parameter must not be an instance of MergedTemplateWithFiles");
     }
 
-    if (recipient == null || StringUtils.isBlank(recipient.getEmailAddress())) {
-      throw new DigitalNotificationLibraryException(
-          "EmailRecipient must not be null or empty for notification with correlation ID %s".formatted(logCorrelationId)
-      );
-    }
-
-    if (domainReference == null) {
-      throw new DigitalNotificationLibraryException(
-          "DomainReference must not be null for notification with correlation ID %s".formatted(logCorrelationId)
-      );
-    }
-
-    var notification = queueNotification(
-        NotificationType.EMAIL,
-        recipient.getEmailAddress(),
-        domainReference,
-        logCorrelationId,
-        mergedTemplate.getMailMergeFields(),
-        mergedTemplate.getFileAttachments(),
-        mergedTemplate.getTemplate()
-    );
-
-    return new EmailNotification(String.valueOf(notification.getId()));
+    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, logCorrelationId);
+    return sendEmail(mergedTemplate, Set.of(), recipient, domainReference, logCorrelationId);
   }
 
   /**
    * Queue an email notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
+   *
+   * @param mergedTemplate  The template with mail merge fields to send
+   * @param recipient       The recipient of the notification
    * @param domainReference A reference to the consumers domain concept the notification is for
    * @return A representation of the notification that has been queued to send
    */
@@ -144,10 +124,62 @@ public class NotificationLibraryClient {
   }
 
   /**
-   * Queue an sms notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
+   * Queue an email notification with files to be sent.
+   *
+   * @param mergedTemplate   The template with mail merge fields and file attachments to send
+   * @param recipient        The recipient of the notification
+   * @param domainReference  A reference to the consumers domain concept the notification is for
+   * @param logCorrelationId An identifier for log correlation
+   * @return A representation of the notification that has been queued to send
+   */
+  @Transactional
+  public EmailNotification sendEmail(MergedTemplateWithFiles mergedTemplate,
+                                     EmailRecipient recipient,
+                                     DomainReference domainReference,
+                                     String logCorrelationId) throws NotificationLibraryFileException {
+    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, logCorrelationId);
+
+    if (CollectionUtils.isEmpty(mergedTemplate.getFileAttachments())) {
+      throw new NotificationLibraryFileException("File attachments not provided for email notification");
+    }
+
+    EmailNotification emailNotification = null;
+    for (FileAttachment fileAttachment : mergedTemplate.getFileAttachments()) {
+      var resolvedFile = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
+      emailNotification = switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
+        case FILE_TOO_LARGE -> throw new NotificationLibraryFileException("File attachment cannot be bigger than 2MB");
+        case INVALID_FILE_NAME -> throw new NotificationLibraryFileException("File name must have 100 characters or less.");
+        case INCORRECT_FILE_EXTENSION ->
+            throw new NotificationLibraryFileException("File name must include a valid file extension");
+        case SUCCESS -> sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference,
+            logCorrelationId);
+      };
+    }
+
+    return emailNotification;
+  }
+
+  /**
+   * Queue an email notification to be sent.
+   *
+   * @param mergedTemplate  The template with mail merge fields to send
+   * @param recipient       The recipient of the notification
    * @param domainReference A reference to the consumers domain concept the notification is for
+   * @return A representation of the notification that has been queued to send
+   */
+  @Transactional
+  public EmailNotification sendEmail(MergedTemplateWithFiles mergedTemplate,
+                                     EmailRecipient recipient,
+                                     DomainReference domainReference) throws NotificationLibraryFileException {
+    return sendEmail(mergedTemplate, recipient, domainReference, null);
+  }
+
+  /**
+   * Queue an sms notification to be sent.
+   *
+   * @param mergedTemplate   The template with mail merge fields to send
+   * @param recipient        The recipient of the notification
+   * @param domainReference  A reference to the consumers domain concept the notification is for
    * @param logCorrelationId An identifier for log correlation
    * @return A representation of the notification that has been queued to send
    */
@@ -195,8 +227,9 @@ public class NotificationLibraryClient {
 
   /**
    * Queue an sms notification to be sent.
-   * @param mergedTemplate The template with mail merge fields to send
-   * @param recipient The recipient of the notification
+   *
+   * @param mergedTemplate  The template with mail merge fields to send
+   * @param recipient       The recipient of the notification
    * @param domainReference A reference to the consumers domain concept the notification is for
    * @return A representation of the notification that has been queued to send
    */
@@ -209,6 +242,7 @@ public class NotificationLibraryClient {
 
   /**
    * Determines if the library is running in test mode.
+   *
    * @return returns true if running in test mode, false otherwise
    */
   public boolean isRunningTestMode() {
@@ -217,10 +251,37 @@ public class NotificationLibraryClient {
 
   /**
    * Determines if the library is running in production mode.
+   *
    * @return returns true if running in production mode, false otherwise
    */
   public boolean isRunningProductionMode() {
     return NotificationMode.PRODUCTION.equals(libraryConfigurationProperties.mode());
+  }
+
+  /**
+   * Determines if the file can be sent to notify as a file attachment mail merge field.
+   * The conditions are as follows:
+   * File size must be less than 2MB,
+   * File name must be less than 100 characters and have a file extension,
+   * File extension must match one of the valid file extensions defined as a configuration property.
+   *
+   * @param contentLength The length of the file content that will be attached
+   * @param filename      The name of the document.
+   * @return returns an AttachableFileResult, which informs the consumer whether the file can be sent via notify.
+   *         The consumer can then decide how they handle invalid files
+   */
+  public AttachableFileResult isFileAttachable(long contentLength, String filename) {
+    var validFileExtensions = FileAttachmentUtils.getValidFileExtensions();
+    int dotIndex = filename.lastIndexOf(".");
+
+    if (contentLength > FileAttachmentUtils.getFileSizeLimit()) {
+      return AttachableFileResult.FILE_TOO_LARGE;
+    } else if (filename.toCharArray().length > FileAttachmentUtils.getFileNameCharacterLimit()) {
+      return AttachableFileResult.INVALID_FILE_NAME;
+    } else if (dotIndex < 0 || !validFileExtensions.contains(filename.substring(dotIndex))) {
+      return AttachableFileResult.INCORRECT_FILE_EXTENSION;
+    }
+    return AttachableFileResult.SUCCESS;
   }
 
   private Notification queueNotification(NotificationType notificationType,
@@ -264,5 +325,48 @@ public class NotificationLibraryClient {
 
   private boolean isSmsTemplateType(MergedTemplate template) {
     return Set.of(TemplateType.SMS, TemplateType.UNKNOWN).contains(template.getTemplate().type());
+  }
+
+  private void checkEmailConfigIsValid(MergedTemplate mergedTemplate, EmailRecipient recipient,
+                                       DomainReference domainReference, String logCorrelationId) {
+    if (mergedTemplate == null) {
+      throw new DigitalNotificationLibraryException("MergedTemplate must not be null");
+    }
+
+    if (!isEmailTemplateType(mergedTemplate)) {
+      throw new DigitalNotificationLibraryException(
+          "Cannot send an email for template with ID %s and type %s"
+              .formatted(mergedTemplate.getTemplate().notifyTemplateId(), mergedTemplate.getTemplate().type())
+      );
+    }
+
+    if (recipient == null || StringUtils.isBlank(recipient.getEmailAddress())) {
+      throw new DigitalNotificationLibraryException(
+          "EmailRecipient must not be null or empty for notification with correlation ID %s".formatted(logCorrelationId)
+      );
+    }
+
+    if (domainReference == null) {
+      throw new DigitalNotificationLibraryException(
+          "DomainReference must not be null for notification with correlation ID %s".formatted(logCorrelationId)
+      );
+    }
+  }
+
+  private EmailNotification sendEmail(MergedTemplate mergedTemplate, Set<FileAttachment> fileAttachments,
+                                      EmailRecipient recipient, DomainReference domainReference,
+                                      String logCorrelationId) {
+
+    var notification = queueNotification(
+        NotificationType.EMAIL,
+        recipient.getEmailAddress(),
+        domainReference,
+        logCorrelationId,
+        mergedTemplate.getMailMergeFields(),
+        fileAttachments,
+        mergedTemplate.getTemplate()
+    );
+
+    return new EmailNotification(String.valueOf(notification.getId()));
   }
 }

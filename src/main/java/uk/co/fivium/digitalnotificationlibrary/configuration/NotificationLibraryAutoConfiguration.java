@@ -1,14 +1,13 @@
 package uk.co.fivium.digitalnotificationlibrary.configuration;
 
 import java.time.Clock;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import uk.co.fivium.digitalnotificationlibrary.core.notification.EmailAttachmentResolver;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLibraryEmailAttachmentResolver;
 import uk.gov.service.notify.NotificationClient;
 
 @ComponentScan(basePackages = "uk.co.fivium.digitalnotificationlibrary")
@@ -36,7 +35,7 @@ class NotificationLibraryAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public EmailAttachmentResolver noOpEmailAttachmentResolver() {
+  public NotificationLibraryEmailAttachmentResolver noOpEmailAttachmentResolver() {
     return fileId -> {
       throw new RuntimeException(
           "Email attachment found but consumer did not provide an EmailAttachmentResolver implementation");

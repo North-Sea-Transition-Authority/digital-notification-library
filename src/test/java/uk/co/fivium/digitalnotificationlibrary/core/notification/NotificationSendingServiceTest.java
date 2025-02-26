@@ -10,7 +10,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -62,30 +62,26 @@ class NotificationSendingServiceTest {
 
   private static NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
-  private static EmailAttachmentResolver emailAttachmentResolver;
+  private static NotificationLibraryEmailAttachmentResolver emailAttachmentResolver;
 
   @Captor
   private ArgumentCaptor<Notification> notificationCaptor;
 
   private static NotificationSendingService notificationSendingService;
 
-
   @BeforeAll
   static void beforeAllSetup() {
 
     libraryConfigurationProperties = NotificationLibraryConfigurationPropertiesTestUtil.builder().build();
-
-    govukNotifyService = mock(TestGovukNotifySender.class);
-
     transactionManager = mock(PlatformTransactionManager.class);
-    emailAttachmentResolver = mock(EmailAttachmentResolver.class);
-    mockStatic(NotificationClient.class);
   }
 
   @BeforeEach
   void beforeEachSetup() {
 
     notificationRepository = mock(NotificationLibraryNotificationRepository.class);
+    emailAttachmentResolver = mock(NotificationLibraryEmailAttachmentResolver.class);
+    govukNotifyService = mock(TestGovukNotifySender.class);
 
     notificationSendingService = new NotificationSendingService(
         transactionManager,
@@ -243,40 +239,43 @@ class NotificationSendingServiceTest {
         given(govukNotifyService.sendEmail(queuedNotification))
             .willReturn(expectedEmailResponse);
 
-        var fileContents = new byte[] {1, 2, 3};
+        var fileContents = new byte[]{1, 2, 3};
         given(emailAttachmentResolver.resolveFileAttachment(fileId)).willReturn(fileContents);
         var uploadedFile = new JSONObject();
         uploadedFile.put("link_to_file", fileId);
 
-        given(NotificationClient.prepareUpload(fileContents, fileName)).willReturn(uploadedFile);
+        try (MockedStatic<NotificationClient> mockedStatic = mockStatic(NotificationClient.class)) {
+          given(NotificationClient.prepareUpload(fileContents, fileName)).willReturn(uploadedFile);
 
-        notificationSendingService.sendNotificationsToNotify();
 
-        then(notificationRepository)
-            .should()
-            .save(notificationCaptor.capture());
+          notificationSendingService.sendNotificationsToNotify();
 
-        var savedNotification = notificationCaptor.getValue();
+          then(notificationRepository)
+              .should()
+              .save(notificationCaptor.capture());
 
-        assertThat(savedNotification)
-            .extracting(
-                Notification::getStatus,
-                Notification::getNotifyNotificationId,
-                Notification::getLastSendAttemptAt
-            )
-            .containsExactly(
-                NotificationStatus.SENT_TO_NOTIFY,
-                String.valueOf(expectedEmailResponse.successResponseObject().getNotificationId()),
-                FIXED_INSTANT
-            );
+          var savedNotification = notificationCaptor.getValue();
 
-        assertThat(savedNotification)
-            .extracting(Notification::getFailureReason, Notification::getRetryCount, Notification::getLastFailedAt)
-            .containsOnlyNulls();
+          assertThat(savedNotification)
+              .extracting(
+                  Notification::getStatus,
+                  Notification::getNotifyNotificationId,
+                  Notification::getLastSendAttemptAt
+              )
+              .containsExactly(
+                  NotificationStatus.SENT_TO_NOTIFY,
+                  String.valueOf(expectedEmailResponse.successResponseObject().getNotificationId()),
+                  FIXED_INSTANT
+              );
 
-        assertThat(savedNotification.getMailMergeFields())
-            .extracting(MailMergeField::name, MailMergeField::value)
-            .containsExactly(tuple("link_to_file", uploadedFile));
+          assertThat(savedNotification)
+              .extracting(Notification::getFailureReason, Notification::getRetryCount, Notification::getLastFailedAt)
+              .containsOnlyNulls();
+
+          assertThat(savedNotification.getMailMergeFields())
+              .extracting(MailMergeField::name, MailMergeField::value)
+              .containsExactly(tuple("link_to_file", uploadedFile));
+        }
       }
     }
 
@@ -336,7 +335,6 @@ class NotificationSendingServiceTest {
             );
 
         verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
-        verifyNoInteractions(NotificationClient.class);
       }
 
       @DisplayName("THEN the email is sent to notify for its next retry attempt")
@@ -391,7 +389,6 @@ class NotificationSendingServiceTest {
             );
 
         verify(emailAttachmentResolver, never()).resolveFileAttachment(any());
-        verifyNoInteractions(NotificationClient.class);
       }
     }
 
@@ -611,6 +608,61 @@ class NotificationSendingServiceTest {
       }
     }
 
+    @DisplayName("AND we have an email notification with a file attachment")
+    @Nested
+    class AndEmailNotificationWithFileAttachment {
+
+      @ParameterizedTest(name = "THEN the email is set to FAILED_NOT_SENT when a {0} response is returned from notify")
+      @ValueSource(ints = {400, 413})
+      void whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(int permanentErrorHttpStatus) throws NotificationClientException {
+        var fileId = UUID.randomUUID();
+        var fileName = "filename.pdf";
+        var fileContents = new byte[]{};
+
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.EMAIL)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .withFileAttachment("link_to_file", fileId, fileName)
+            .build();
+
+        givenDatabaseReturnsNotification(queuedNotification);
+        var expectedNotifyException = mock(NotificationClientException.class);
+        given(expectedNotifyException.getHttpResult()).willReturn(permanentErrorHttpStatus);
+        given(expectedNotifyException.getMessage()).willReturn("error");
+
+        given(emailAttachmentResolver.resolveFileAttachment(fileId)).willReturn(fileContents);
+        try (MockedStatic<NotificationClient> mockedStatic = mockStatic(NotificationClient.class)) {
+          given(NotificationClient.prepareUpload(fileContents, fileName))
+              .willThrow(expectedNotifyException);
+
+          notificationSendingService.sendNotificationsToNotify();
+
+          then(notificationRepository)
+              .should()
+              .save(notificationCaptor.capture());
+
+          var savedNotification = notificationCaptor.getValue();
+
+          assertThat(savedNotification)
+              .extracting(
+                  Notification::getStatus,
+                  Notification::getNotifyNotificationId,
+                  Notification::getLastSendAttemptAt,
+                  Notification::getLastFailedAt
+              )
+              .containsExactly(
+                  NotificationStatus.FAILED_NOT_SENT,
+                  null, // no notification ID from notify as we never successfully sent
+                  null, // no last send attempt as if the file attachment fails, then we never send to notify
+                  FIXED_INSTANT
+              );
+
+          verify(govukNotifyService, never()).sendEmail(any());
+        }
+      }
+    }
+
     @DisplayName("AND we have an sms notification")
     @Nested
     class AndSmsNotification {
@@ -703,6 +755,62 @@ class NotificationSendingServiceTest {
             );
 
         assertThat(savedNotification.getFailureReason()).isNotNull();
+      }
+    }
+
+    @DisplayName("AND we have an email notification with a file attachment")
+    @Nested
+    class AndEmailNotificationWithFileAttachment {
+
+      @DisplayName("THEN the email is set to FAILED_TO_SEND_TO_NOTIFY")
+      @Test
+      void whenEmailNotification_andTemporaryErrorNotifyResponse_thenVerifySavedProperties() throws NotificationClientException {
+        var fileId = UUID.randomUUID();
+        var fileName = "filename.pdf";
+        var fileContents = new byte[] {1, 2, 3};
+
+        var queuedNotification = NotificationTestUtil.builder()
+            .withType(NotificationType.EMAIL)
+            .withStatus(NotificationStatus.QUEUED)
+            .withLastSendAttemptAt(null)
+            .withFileAttachment("link_to_file", fileId, fileName)
+            .build();
+
+        givenDatabaseReturnsNotification(queuedNotification);
+        var expectedNotifyException = mock(NotificationClientException.class);
+        given(expectedNotifyException.getHttpResult()).willReturn(500);
+        given(expectedNotifyException.getMessage()).willReturn("error");
+
+        given(emailAttachmentResolver.resolveFileAttachment(fileId)).willReturn(fileContents);
+        try (MockedStatic<NotificationClient> mockedStatic = mockStatic(NotificationClient.class)) {
+          given(NotificationClient.prepareUpload(fileContents, fileName))
+              .willThrow(expectedNotifyException);
+
+          notificationSendingService.sendNotificationsToNotify();
+
+          then(notificationRepository)
+              .should()
+              .save(notificationCaptor.capture());
+
+          var savedNotification = notificationCaptor.getValue();
+
+          assertThat(savedNotification)
+              .extracting(
+                  Notification::getStatus,
+                  Notification::getNotifyNotificationId,
+                  Notification::getLastSendAttemptAt,
+                  Notification::getLastFailedAt
+              )
+              .containsExactly(
+                  NotificationStatus.FAILED_TO_SEND_TO_NOTIFY,
+                  null, // no notification ID from notify as we never successfully sent
+                  null,
+                  FIXED_INSTANT
+              );
+
+          assertThat(savedNotification.getFailureReason()).isNotNull();
+          verify(govukNotifyService, never()).sendEmail(any());
+        }
       }
     }
 
