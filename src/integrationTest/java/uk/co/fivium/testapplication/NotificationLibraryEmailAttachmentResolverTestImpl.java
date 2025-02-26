@@ -5,11 +5,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-import uk.co.fivium.digitalnotificationlibrary.core.notification.EmailAttachmentResolver;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLibraryEmailAttachmentResolver;
 
 @Component
-public class EmailAttachmentResolverTestImpl implements EmailAttachmentResolver {
+public class NotificationLibraryEmailAttachmentResolverTestImpl implements NotificationLibraryEmailAttachmentResolver {
 
   public byte[] resolveFileAttachment(UUID fileId) {
     var initialFile = new File("src/main/resources/TestDocument.pdf");

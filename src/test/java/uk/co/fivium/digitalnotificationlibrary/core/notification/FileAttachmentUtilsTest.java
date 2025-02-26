@@ -24,4 +24,10 @@ class FileAttachmentUtilsTest {
             ".txt"
         );
   }
+
+  @Test
+  void getFileSizeLimit() {
+    assertThat(FileAttachmentUtils.getFileSizeLimit())
+        .isEqualTo(2 * 1024 * 1024);
+  }
 }

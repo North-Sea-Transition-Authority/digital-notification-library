@@ -32,7 +32,7 @@ abstract class AbstractIntegrationTest {
   protected JdbcTemplate jdbcTemplate;
 
   @Autowired
-  protected EmailAttachmentResolverTestImpl emailAttachmentResolver;
+  protected NotificationLibraryEmailAttachmentResolverTestImpl emailAttachmentResolver;
 
   @AfterEach
   void afterEachDatabaseTeardown() {

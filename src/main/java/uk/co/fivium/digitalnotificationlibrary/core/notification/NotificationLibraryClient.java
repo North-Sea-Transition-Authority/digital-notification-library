@@ -30,7 +30,7 @@ public class NotificationLibraryClient {
 
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
-  private final EmailAttachmentResolver emailAttachmentResolver;
+  private final NotificationLibraryEmailAttachmentResolver emailAttachmentResolver;
 
   /**
    * Create an instance of NotificationLibraryClient.
@@ -45,7 +45,7 @@ public class NotificationLibraryClient {
                                    TemplateService templateService,
                                    Clock clock,
                                    NotificationLibraryConfigurationProperties libraryConfigurationProperties,
-                                   EmailAttachmentResolver emailAttachmentResolver) {
+                                   NotificationLibraryEmailAttachmentResolver emailAttachmentResolver) {
     this.notificationRepository = notificationRepository;
     this.templateService = templateService;
     this.clock = clock;
@@ -98,6 +98,12 @@ public class NotificationLibraryClient {
                                      EmailRecipient recipient,
                                      DomainReference domainReference,
                                      String logCorrelationId) {
+
+    if (mergedTemplate instanceof MergedTemplateWithFiles) {
+      throw new DigitalNotificationLibraryException(
+          "MergedTemplate parameter must not be an instance of MergedTemplateWithFiles");
+    }
+
     checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, logCorrelationId);
     return sendEmail(mergedTemplate, Set.of(), recipient, domainReference, logCorrelationId);
   }
@@ -114,7 +120,6 @@ public class NotificationLibraryClient {
   public EmailNotification sendEmail(MergedTemplate mergedTemplate,
                                      EmailRecipient recipient,
                                      DomainReference domainReference) {
-    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, null);
     return sendEmail(mergedTemplate, recipient, domainReference, null);
   }
 
@@ -131,21 +136,21 @@ public class NotificationLibraryClient {
   public EmailNotification sendEmail(MergedTemplateWithFiles mergedTemplate,
                                      EmailRecipient recipient,
                                      DomainReference domainReference,
-                                     String logCorrelationId) throws NotificationFileException {
+                                     String logCorrelationId) throws NotificationLibraryFileException {
     checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, logCorrelationId);
 
     if (CollectionUtils.isEmpty(mergedTemplate.getFileAttachments())) {
-      throw new NotificationFileException("File attachments not provided for email notification");
+      throw new NotificationLibraryFileException("File attachments not provided for email notification");
     }
 
     EmailNotification emailNotification = null;
     for (FileAttachment fileAttachment : mergedTemplate.getFileAttachments()) {
       var resolvedFile = emailAttachmentResolver.resolveFileAttachment(fileAttachment.fileId());
       emailNotification = switch (isFileAttachable(resolvedFile.length, fileAttachment.fileName())) {
-        case FILE_TOO_LARGE -> throw new NotificationFileException("File attachment cannot be bigger than 2MB");
-        case INVALID_FILE_NAME -> throw new NotificationFileException("File name must have 100 characters or less.");
+        case FILE_TOO_LARGE -> throw new NotificationLibraryFileException("File attachment cannot be bigger than 2MB");
+        case INVALID_FILE_NAME -> throw new NotificationLibraryFileException("File name must have 100 characters or less.");
         case INCORRECT_FILE_EXTENSION ->
-            throw new NotificationFileException("File name must include a valid file extension");
+            throw new NotificationLibraryFileException("File name must include a valid file extension");
         case SUCCESS -> sendEmail(mergedTemplate, mergedTemplate.getFileAttachments(), recipient, domainReference,
             logCorrelationId);
       };
@@ -165,8 +170,7 @@ public class NotificationLibraryClient {
   @Transactional
   public EmailNotification sendEmail(MergedTemplateWithFiles mergedTemplate,
                                      EmailRecipient recipient,
-                                     DomainReference domainReference) throws NotificationFileException {
-    checkEmailConfigIsValid(mergedTemplate, recipient, domainReference, null);
+                                     DomainReference domainReference) throws NotificationLibraryFileException {
     return sendEmail(mergedTemplate, recipient, domainReference, null);
   }
 
@@ -270,7 +274,7 @@ public class NotificationLibraryClient {
     var validFileExtensions = FileAttachmentUtils.getValidFileExtensions();
     int dotIndex = filename.lastIndexOf(".");
 
-    if (contentLength > 2 * 1024 * 1024) {
+    if (contentLength > FileAttachmentUtils.getFileSizeLimit()) {
       return AttachableFileResult.FILE_TOO_LARGE;
     } else if (filename.toCharArray().length > 100) {
       return AttachableFileResult.INVALID_FILE_NAME;

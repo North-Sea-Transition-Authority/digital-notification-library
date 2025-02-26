@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -12,8 +11,8 @@ public class MergedTemplateWithFiles extends MergedTemplate {
 
   private final Set<FileAttachment> fileAttachments;
 
-  protected MergedTemplateWithFiles(Template template, Set<MailMergeField> mailMergeFields, Set<FileAttachment> fileAttachments) {
-    super(template, mailMergeFields);
+  protected MergedTemplateWithFiles(MergedTemplate mergedTemplate, Set<FileAttachment> fileAttachments) {
+    super(mergedTemplate.getTemplate(), mergedTemplate.getMailMergeFields());
     this.fileAttachments = fileAttachments;
   }
 
@@ -100,16 +99,8 @@ public class MergedTemplateWithFiles extends MergedTemplate {
      */
     @Override
     public MergedTemplateWithFiles merge() {
-
-      Set<MailMergeField> mailMergeFieldSet = mailMergeFields
-          .entrySet()
-          .stream()
-          .map(field -> new MailMergeField(field.getKey(), field.getValue()))
-          .collect(Collectors.toSet());
-
-      return new MergedTemplateWithFiles(template, mailMergeFieldSet, fileAttachments);
+      var mergedTemplate = super.merge();
+      return new MergedTemplateWithFiles(mergedTemplate, fileAttachments);
     }
-
   }
-
 }

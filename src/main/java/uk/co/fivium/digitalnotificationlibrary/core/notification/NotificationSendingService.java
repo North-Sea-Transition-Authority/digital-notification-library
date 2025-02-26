@@ -36,7 +36,7 @@ class NotificationSendingService {
 
   private final Clock clock;
 
-  private final EmailAttachmentResolver emailAttachmentResolver;
+  private final NotificationLibraryEmailAttachmentResolver emailAttachmentResolver;
 
   @Autowired
   NotificationSendingService(PlatformTransactionManager transactionManager,
@@ -44,7 +44,7 @@ class NotificationSendingService {
                              GovukNotifySender govukNotifySender,
                              NotificationLibraryConfigurationProperties libraryConfigurationProperties,
                              Clock clock,
-                             EmailAttachmentResolver emailAttachmentResolver) {
+                             NotificationLibraryEmailAttachmentResolver emailAttachmentResolver) {
     this.transactionTemplate = new TransactionTemplate(transactionManager);
     this.notificationRepository = notificationRepository;
     this.govukNotifySender = govukNotifySender;
@@ -70,7 +70,7 @@ class NotificationSendingService {
     notificationsToSend.forEach(notificationToSend ->
         transactionTemplate.executeWithoutResult(status -> {
           var notification = addFileAttachmentsAsMailMergeFields(notificationToSend);
-          if (NotificationStatus.getAllowedStatusesForSendingANotification().contains(notification.getStatus())) {
+          if (Set.of(NotificationStatus.QUEUED, NotificationStatus.RETRY).contains(notification.getStatus())) {
             sendNotification(notification);
           }
           notificationRepository.save(notification);

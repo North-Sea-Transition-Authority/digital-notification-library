@@ -54,7 +54,7 @@ class NotificationLibraryClientTest {
   private NotificationLibraryClient notificationLibraryClient;
 
   @Mock
-  private EmailAttachmentResolver emailAttachmentResolver;
+  private NotificationLibraryEmailAttachmentResolver emailAttachmentResolver;
 
   @BeforeEach
   void setup() {
@@ -306,6 +306,38 @@ class NotificationLibraryClientTest {
     )
         .isInstanceOf(DigitalNotificationLibraryException.class)
         .hasMessage("DomainReference must not be null for notification with correlation ID null");
+  }
+
+  @Test
+  void sendEmail_whenWrongMergedTemplateIsPassedIn_thenException() {
+
+    EmailRecipient nullRecipient = null;
+
+    var mergedTemplate = givenMergedTemplateWithFiles(UUID.randomUUID(), "name");
+    var domainReference = DomainReference.from("id", "type");
+
+    // with log correlation ID
+    assertThatThrownBy(
+        () -> notificationLibraryClient.sendEmail(
+            (MergedTemplate) mergedTemplate,
+            nullRecipient,
+            domainReference,
+            "log-correlation-id"
+        )
+    )
+        .isInstanceOf(DigitalNotificationLibraryException.class)
+        .hasMessage("MergedTemplate parameter must not be an instance of MergedTemplateWithFiles");
+
+    // without log correlation ID
+    assertThatThrownBy(
+        () -> notificationLibraryClient.sendEmail(
+            (MergedTemplate) mergedTemplate,
+            nullRecipient,
+            domainReference
+        )
+    )
+        .isInstanceOf(DigitalNotificationLibraryException.class)
+        .hasMessage("MergedTemplate parameter must not be an instance of MergedTemplateWithFiles");
   }
 
   @Test
@@ -599,7 +631,7 @@ class NotificationLibraryClientTest {
     var mergedTemplate = givenMergedTemplateWithFiles(fileId, "filename.pdf");
     var recipient = EmailRecipient.directEmailAddress("someone@example.com");
     var domainReference = DomainReference.from("id", "type");
-    var fileContents = new byte[(2*1024*1024 + 1)];
+    var fileContents = new byte[(2 * 1024 * 1024 + 1)];
 
     given(emailAttachmentResolver.resolveFileAttachment(fileId)).willReturn(fileContents);
 
@@ -612,7 +644,7 @@ class NotificationLibraryClientTest {
             "log-correlation-id"
         )
     )
-        .isInstanceOf(NotificationFileException.class)
+        .isInstanceOf(NotificationLibraryFileException.class)
         .hasMessage("File attachment cannot be bigger than 2MB");
 
     // without log correlation ID
@@ -623,7 +655,7 @@ class NotificationLibraryClientTest {
             domainReference
         )
     )
-        .isInstanceOf(NotificationFileException.class)
+        .isInstanceOf(NotificationLibraryFileException.class)
         .hasMessage("File attachment cannot be bigger than 2MB");
   }
 
@@ -647,7 +679,7 @@ class NotificationLibraryClientTest {
             "log-correlation-id"
         )
     )
-        .isInstanceOf(NotificationFileException.class)
+        .isInstanceOf(NotificationLibraryFileException.class)
         .hasMessage("File name must have 100 characters or less.");
 
     // without log correlation ID
@@ -658,7 +690,7 @@ class NotificationLibraryClientTest {
             domainReference
         )
     )
-        .isInstanceOf(NotificationFileException.class)
+        .isInstanceOf(NotificationLibraryFileException.class)
         .hasMessage("File name must have 100 characters or less.");
   }
 
@@ -682,7 +714,7 @@ class NotificationLibraryClientTest {
             "log-correlation-id"
         )
     )
-        .isInstanceOf(NotificationFileException.class)
+        .isInstanceOf(NotificationLibraryFileException.class)
         .hasMessage("File name must include a valid file extension");
 
     // without log correlation ID
@@ -693,12 +725,12 @@ class NotificationLibraryClientTest {
             domainReference
         )
     )
-        .isInstanceOf(NotificationFileException.class)
+        .isInstanceOf(NotificationLibraryFileException.class)
         .hasMessage("File name must include a valid file extension");
   }
 
   @Test
-  void sendEmail_withFiles_withLogCorrelationId_verifyQueuedNotification() throws NotificationFileException {
+  void sendEmail_withFiles_withLogCorrelationId_verifyQueuedNotification() throws NotificationLibraryFileException {
 
     var template = TemplateTestUtil.builder()
         .withNotifyTemplateId("notify-template-id")
@@ -719,7 +751,7 @@ class NotificationLibraryClientTest {
 
     var logCorrelationId = "log-correlation-id";
 
-    when(emailAttachmentResolver.resolveFileAttachment(fileId1)).thenReturn(new byte[] {1,2, 3});
+    when(emailAttachmentResolver.resolveFileAttachment(fileId1)).thenReturn(new byte[]{1, 2, 3});
 
     notificationLibraryClient.sendEmail(
         mergedTemplate,
@@ -775,7 +807,7 @@ class NotificationLibraryClientTest {
   }
 
   @Test
-  void sendEmail_withFiles_withoutLogCorrelationId_verifyQueuedNotification() throws NotificationFileException {
+  void sendEmail_withFiles_withoutLogCorrelationId_verifyQueuedNotification() throws NotificationLibraryFileException {
 
     var template = TemplateTestUtil.builder()
         .withNotifyTemplateId("notify-template-id")
@@ -794,7 +826,7 @@ class NotificationLibraryClientTest {
 
     var domainReference = DomainReference.from("domain-id", "domain-type");
 
-    when(emailAttachmentResolver.resolveFileAttachment(fileId1)).thenReturn(new byte[] {1,2, 3});
+    when(emailAttachmentResolver.resolveFileAttachment(fileId1)).thenReturn(new byte[]{1, 2, 3});
 
     notificationLibraryClient.sendEmail(
         mergedTemplate,

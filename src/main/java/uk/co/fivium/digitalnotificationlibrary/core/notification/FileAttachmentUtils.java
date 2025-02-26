@@ -24,4 +24,8 @@ class FileAttachmentUtils {
         ".txt"
     );
   }
+
+  static int getFileSizeLimit() {
+    return 2 * 1024 * 1024;
+  }
 }

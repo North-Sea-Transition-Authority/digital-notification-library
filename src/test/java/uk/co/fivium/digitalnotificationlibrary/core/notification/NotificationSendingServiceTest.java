@@ -62,7 +62,7 @@ class NotificationSendingServiceTest {
 
   private static NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
-  private static EmailAttachmentResolver emailAttachmentResolver;
+  private static NotificationLibraryEmailAttachmentResolver emailAttachmentResolver;
 
   @Captor
   private ArgumentCaptor<Notification> notificationCaptor;
@@ -80,7 +80,7 @@ class NotificationSendingServiceTest {
   void beforeEachSetup() {
 
     notificationRepository = mock(NotificationLibraryNotificationRepository.class);
-    emailAttachmentResolver = mock(EmailAttachmentResolver.class);
+    emailAttachmentResolver = mock(NotificationLibraryEmailAttachmentResolver.class);
     govukNotifyService = mock(TestGovukNotifySender.class);
 
     notificationSendingService = new NotificationSendingService(
