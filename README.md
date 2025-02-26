@@ -286,16 +286,16 @@ class ApplicationService {
 #### File attachments 
 
 ##### How to attach files to an email notification
-It is possible to include file attachments to an email notification. In the consumer, there will need to be a `EmailAttachmentResolver` bean
+It is possible to include file attachments to an email notification. In the consumer, there will need to be a `NotificationLibraryEmailAttachmentResolver` bean
 which takes in a `fileId` and returns the file contents as a `byte[]`. On the consumer side, this will most likely involving retrieving the file 
-from the consumer's S3 bucket. The library will store the file ids as a JSON list on the `notiication_library_notifications` table. Files will be
+from the consumer's S3 bucket. The library will store the file ids as a JSON list on the `notification_library_notifications` table. Files will be
 passed to the email template in the similar way to the mail merge fields
 
 ```java
 MergedTemplate mergedTemplate = notificationLibraryClient.getTemplate("notify template ID")
     .withMailMergeField("recipient_name", "Claire")
     .withMailMergeField("application_reference", "DA/2024/123")
-        .withFileAttachment("file_link_mm", daa0433a-9361-4b95-9e72-e9867e9a6ee0, "File.pdf")    
+    .withFileAttachment("file_link_mm", daa0433a-9361-4b95-9e72-e9867e9a6ee0, "File.pdf")    
     .merge();
 ```
 
@@ -308,9 +308,10 @@ their email address. After verification, they will be taken to a page to downloa
 
 ##### Notify file attachment restrictions 
 There is a file size limit of 2MB and file name length limit of 100 characters. There should be validation in place on the consumer to ensure that only valid 
-files are passed through to the library to be attached to emails. 
-To see the full list of GOVUK Notify sending file error codes, see [here](https://docs.notifications.service.gov.uk/java.html#send-a-file-by-email-error-codes) 
-
+files are passed through to the library to be attached to emails. As the consumer, you can call the `isFileAttachable` method which will carry out checks on the 
+file that you would like to attach.
+To see the full list of GOVUK Notify sending file error codes, see [here](https://docs.notifications.service.gov.uk/java.html#send-a-file-by-email-error-codes)
+If the file does breach any of the restrictions from GOVUK Notify, there will be an error thrown that the consumer will need to handle. 
 
 
 ### What if a notification fails to send?
