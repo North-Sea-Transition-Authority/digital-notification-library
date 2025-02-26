@@ -30,4 +30,10 @@ class FileAttachmentUtilsTest {
     assertThat(FileAttachmentUtils.getFileSizeLimit())
         .isEqualTo(2 * 1024 * 1024);
   }
+
+  @Test
+  void getFileNameCharacterLimit() {
+    assertThat(FileAttachmentUtils.getFileNameCharacterLimit())
+        .isEqualTo(100);
+  }
 }

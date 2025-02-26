@@ -276,7 +276,7 @@ public class NotificationLibraryClient {
 
     if (contentLength > FileAttachmentUtils.getFileSizeLimit()) {
       return AttachableFileResult.FILE_TOO_LARGE;
-    } else if (filename.toCharArray().length > 100) {
+    } else if (filename.toCharArray().length > FileAttachmentUtils.getFileNameCharacterLimit()) {
       return AttachableFileResult.INVALID_FILE_NAME;
     } else if (dotIndex < 0 || !validFileExtensions.contains(filename.substring(dotIndex))) {
       return AttachableFileResult.INCORRECT_FILE_EXTENSION;

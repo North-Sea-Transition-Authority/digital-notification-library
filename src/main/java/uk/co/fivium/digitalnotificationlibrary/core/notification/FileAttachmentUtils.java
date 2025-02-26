@@ -28,4 +28,8 @@ class FileAttachmentUtils {
   static int getFileSizeLimit() {
     return 2 * 1024 * 1024;
   }
+
+  static int getFileNameCharacterLimit() {
+    return 100;
+  }
 }

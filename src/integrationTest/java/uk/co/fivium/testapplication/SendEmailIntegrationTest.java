@@ -13,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.DomainReference;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLibraryFileException;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailNotification;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.gov.service.notify.Notification;
@@ -504,12 +505,16 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
 
       var mergedTemplate = getEmailMergeTemplateWithFiles();
 
-      return notificationLibraryClient.sendEmail(
-          mergedTemplate,
-          emailRecipient,
-          DomainReference.from("id", "integration-test"),
-          logCorrelationId
-      );
+      try {
+        return notificationLibraryClient.sendEmail(
+            mergedTemplate,
+            emailRecipient,
+            DomainReference.from("id", "integration-test"),
+            logCorrelationId
+        );
+      } catch (NotificationLibraryFileException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

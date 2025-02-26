@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplate;
+import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplateWithFiles;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLibraryClient;
 import uk.gov.service.notify.Notification;
 import uk.gov.service.notify.NotificationClient;
@@ -50,7 +51,7 @@ abstract class AbstractIntegrationTest {
     return getMergeTemplate(GovukNotifyTemplate.EMAIL_TEMPLATE);
   }
 
-  MergedTemplate getEmailMergeTemplateWithFiles() {
+  MergedTemplateWithFiles getEmailMergeTemplateWithFiles() {
     return getMergeTemplateWithFiles(GovukNotifyTemplate.EMAIL_TEMPLATE);
   }
 
@@ -69,7 +70,7 @@ abstract class AbstractIntegrationTest {
         .merge();
   }
 
-  private MergedTemplate getMergeTemplateWithFiles(GovukNotifyTemplate govukNotifyTemplate) {
+  private MergedTemplateWithFiles getMergeTemplateWithFiles(GovukNotifyTemplate govukNotifyTemplate) {
     return notificationLibraryClient.getTemplate(govukNotifyTemplate.getGovukNotifyTemplateId())
         .withMailMergeField("name", "name-value")
         .withMailMergeField("reference", "reference-value")
