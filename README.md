@@ -307,9 +307,9 @@ The recipient will be emailed with a link to download their file from GOVUK Noti
 their email address. After verification, they will be taken to a page to download the file, this file will only be retained by GOVUK Notify for 6 months by default.
 
 ##### Notify file attachment restrictions 
-There is a file size limit of 2MB and file name length limit of 100 characters. There should be validation in place on the consumer to ensure that only valid 
-files are passed through to the library to be attached to emails. As the consumer, you can call the `isFileAttachable` method which will carry out checks on the 
-file that you would like to attach.
+There is a file size limit of 2MB, file name length limit of 100 characters and a file extension from the appproved GOVUK Notify list.
+There should be validation in place on the consumer to ensure that only valid files are passed through to the library to be attached 
+to emails. As the consumer, you can call the `isFileAttachable` method which will carry out checks on the file that you would like to attach.
 To see the full list of GOVUK Notify sending file error codes, see [here](https://docs.notifications.service.gov.uk/java.html#send-a-file-by-email-error-codes)
 If the file does breach any of the restrictions from GOVUK Notify, there will be an error thrown that the consumer will need to handle. 
 
