@@ -92,7 +92,9 @@ public class NotificationLibraryConfigurationPropertiesTestUtil {
           new NotificationLibraryConfigurationProperties.GovukNotify("govuk-notify-api-key"),
           notificationObjectProperties,
           notificationMode,
-          testMode
+          testMode,
+          "",
+          ""
       );
     }
   }
