@@ -19,7 +19,8 @@ class NotificationLibraryFlywayConfiguration {
   NotificationLibraryFlywayConfiguration(@Value("${spring.flyway.schemas}") String[] existingSchemas,
                                          DataSource dataSource,
                                          NotificationLibraryConfigurationProperties properties,
-                                         DataSourceProperties dataSourceProperties) {
+                                         DataSourceProperties dataSourceProperties,
+                                         @Value("${spring.flyway.enabled:true}") boolean flywayEnabled) {
     var vendor = properties.flywayVendor() != null
         ? properties.flywayVendor()
         : "postgresql";
@@ -27,6 +28,10 @@ class NotificationLibraryFlywayConfiguration {
     DataSource selectedDataSource = StringUtils.isNotBlank(properties.flywayUser())
         ? overrideDataSource(dataSourceProperties, properties.flywayUser())
         : dataSource;
+
+    if (!flywayEnabled) {
+      return;
+    }
 
     Flyway.configure()
         .dataSource(selectedDataSource) // use the existing datasource
