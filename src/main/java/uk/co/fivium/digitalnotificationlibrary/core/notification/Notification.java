@@ -21,6 +21,7 @@ class Notification {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
+  @JdbcTypeCode(SqlTypes.UUID)
   private UUID id;
 
   @Enumerated(EnumType.STRING)

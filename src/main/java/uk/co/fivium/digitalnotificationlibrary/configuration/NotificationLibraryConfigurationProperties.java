@@ -25,7 +25,9 @@ import org.springframework.validation.annotation.Validated;
 public record NotificationLibraryConfigurationProperties(@NotNull GovukNotify govukNotify,
                                                          Notification notification,
                                                          @NotNull NotificationMode mode,
-                                                         TestMode testMode) implements Validator {
+                                                         TestMode testMode,
+                                                         String flywayVendor,
+                                                         String flywayUser) implements Validator {
 
   /** The default library notification bulk retrieval limit. */
   public static final int DEFAULT_BULK_RETRIEVAL_LIMIT = 100;
