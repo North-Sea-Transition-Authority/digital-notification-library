@@ -7,7 +7,7 @@ CREATE TABLE notification_library_notifications (
   notify_status VARCHAR2(4000),
   notify_status_last_updated_at TIMESTAMP WITH TIME ZONE,
   recipient VARCHAR2(4000) NOT NULL,
-  mail_merge_fields CLOB,
+  mail_merge_fields BLOB,
   domain_reference_id VARCHAR2(4000) NOT NULL,
   domain_reference_type VARCHAR2(4000) NOT NULL,
   log_correlation_id VARCHAR2(4000),
@@ -17,7 +17,7 @@ CREATE TABLE notification_library_notifications (
   last_failed_at TIMESTAMP WITH TIME ZONE,
   retry_count NUMBER,
   last_send_attempt_at TIMESTAMP WITH TIME ZONE,
-  file_attachments CLOB
+  file_attachments BLOB
 );
 
 CREATE TABLE notification_library_notifications_aud (
@@ -31,7 +31,7 @@ CREATE TABLE notification_library_notifications_aud (
   notify_notification_id VARCHAR2(4000),
   notify_status VARCHAR2(4000),
   recipient VARCHAR2(4000),
-  mail_merge_fields CLOB,
+  mail_merge_fields BLOB,
   domain_reference_id VARCHAR2(4000),
   domain_reference_type VARCHAR2(4000),
   log_correlation_id VARCHAR2(4000),
@@ -41,5 +41,5 @@ CREATE TABLE notification_library_notifications_aud (
   last_failed_at TIMESTAMP WITH TIME ZONE,
   retry_count NUMBER,
   last_send_attempt_at TIMESTAMP WITH TIME ZONE,
-  file_attachments CLOB
+  file_attachments BLOB
 );
