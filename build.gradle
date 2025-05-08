@@ -52,7 +52,7 @@ repositories {
     }
 }
 
-def notificationsJavaClientVersion = '5.1.0-RELEASE'
+def notificationsJavaClientVersion = '5.2.1-RELEASE'
 
 dependencies {
 
