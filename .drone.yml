@@ -133,7 +133,8 @@ steps:
   - name: slack
     image: plugins/slack
     settings:
-      webhook: https://hooks.slack.com/services/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
+      webhook:
+        from_secret: slack_webhook
       channel: digital-shared-services-builds
       template: "*{{build.status}}* <{{build.link}}|Commit {{truncate build.commit 7}} on {{build.branch}} by ${DRONE_COMMIT_AUTHOR_NAME}>\nReports published to: http://drone-assets.fivium.local:9090/digital-notification-library/{{build.number}}/"
     when:
@@ -146,7 +147,8 @@ steps:
       icon_url: https://cdn.worldvectorlogo.com/logos/drone.svg
       template: "<!channel> *Digital Notification Library: ${DRONE_TAG}* has been released by ${DRONE_COMMIT_AUTHOR_NAME}\nRelease notes: https://github.com/Fivium/digital-notification-library/releases/tag/${DRONE_TAG}"
       username: drone
-      webhook: https://hooks.slack.com/services/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
+      webhook:
+        from_secret: slack_webhook_publish_release
     when:
       event:
         - tag
@@ -284,3 +286,15 @@ data: 1RlwKOivHoL91g3V0JvAQZKXZ4JCutNNdxClYJIapoYNP+YdhA==
 kind: secret
 name: govuk_notify_integration_test_api_key
 data: GcT4MvwGPiTmvN7i9UQ9F6DPFZMLD5fsOITYdabptayBdvKe7SJk9/Hl6DZ7zBztp167b/6j9b3FUQrnTRD/Zzy4ITS9P66h0gOlaxmCUKYN+4+dTLOSmCAXDbvUBD++AY4BCWv74I0Xg0IokB333lJkyvSWELgVa13dd1ggBrtU6HLVN7OkIxGkcqzfwpTDg9+5
+
+---
+
+kind: secret
+name: slack_webhook
+data: o6gU9pcM7JtleeSoVau/KAAx3gqf4mFKWZTF4oOl3lnvJsmgC8IEohWqcI6oOVHKudbMY3xhlIyAsmYC8bywt7YA58rWW72Qu8swK+ndqUCLUm8VyjM/FmJC8q8+0w99c+Agdq3aRSLLN/4=
+
+---
+
+kind: secret
+name: slack_webhook_publish_release
+data: o3ClJU+27v3MdQF3cl4dhQadTCXldwqg6wVOfqf1wGq3swjdpke3WNu/mgwwEeWPd4zXBs4ESzNqAhN5JRnoG+w+OT8V2zPzQ5v87sHC3qPuvqWvLRS+zyUnnc2WMUM/V1bjmtPDjsM6pZA=
