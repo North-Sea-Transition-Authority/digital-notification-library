@@ -4,8 +4,8 @@ plugins {
     id 'java-library'
     // This plugin isn't applied as this isn't an executable app. It is still required as a dependency, see the below
     // comment on the dependencyManagement block for why.
-    id 'org.springframework.boot' version '3.2.3' apply false
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.springframework.boot' version '4.1.1' apply false
+    id 'io.spring.dependency-management' version '1.1.7'
     id 'checkstyle'
     id 'jacoco'
     id 'org.sonarqube' version '4.4.1.3373'
@@ -65,16 +65,22 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // spring managed dependencies
-    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+    implementation "org.jspecify:jspecify:1.0.0"
     implementation 'org.apache.commons:commons-lang3'
 
     // external dependencies
+    implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
     implementation "uk.gov.service.notify:notifications-java-client:${notificationsJavaClientVersion}"
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
 
     // test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // Aligns the JUnit Platform launcher with the JUnit version from the Spring Boot 4 BOM
+    // (Gradle bundles an older launcher, causing "OutputDirectoryCreator not available")
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // integration test dependencies
     integrationTestRuntimeOnly 'org.postgresql:postgresql:42.6.0'
@@ -87,12 +93,15 @@ dependencies {
     integrationTestImplementation 'org.springframework.data:spring-data-envers'
     integrationTestImplementation 'org.springframework.boot:spring-boot-starter-validation'
     integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // Aligns the JUnit Platform launcher with the JUnit version from the Spring Boot 4 BOM
+    integrationTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // spring managed dependencies
-    integrationTestImplementation 'org.flywaydb:flyway-core'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-flyway'
+    integrationTestRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 
     // external dependencies
-    integrationTestImplementation 'org.testcontainers:postgresql:1.19.1'
+    integrationTestImplementation 'org.testcontainers:testcontainers-postgresql:2.0.5'
     integrationTestImplementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
     integrationTestImplementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.10.0'
     integrationTestImplementation "uk.gov.service.notify:notifications-java-client:${notificationsJavaClientVersion}"

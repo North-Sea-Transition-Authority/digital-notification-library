@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -279,7 +280,7 @@ class NotificationStatusUpdateServiceTest {
       static class RetryableNotifyStatus implements ArgumentsProvider {
 
         @Override
-        public Stream<Arguments> provideArguments(ExtensionContext context) {
+        public Stream<Arguments> provideArguments(ParameterDeclarations parameters, ExtensionContext context) {
           return Stream.of(
               Arguments.of(GovukNotifyNotificationStatus.TEMPORARY_FAILURE),
               Arguments.of(GovukNotifyNotificationStatus.TECHNICAL_FAILURE)

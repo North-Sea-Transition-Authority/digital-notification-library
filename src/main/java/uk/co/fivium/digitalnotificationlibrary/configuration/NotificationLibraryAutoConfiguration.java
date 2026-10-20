@@ -7,10 +7,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.NotificationLibraryEmailAttachmentResolver;
 import uk.gov.service.notify.NotificationClient;
 
 @ComponentScan(basePackages = "uk.co.fivium.digitalnotificationlibrary")
+@Configuration
 @EnableConfigurationProperties(NotificationLibraryConfigurationProperties.class)
 class NotificationLibraryAutoConfiguration {
 

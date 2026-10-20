@@ -43,7 +43,7 @@ steps:
       - name: docker-cache-image
         path: /drone/docker/image
     settings:
-      storage_driver: overlay2 --dns=192.168.10.1
+      storage_driver: overlay2 --dns=192.168.20.1
       cmd:
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
@@ -70,7 +70,7 @@ steps:
       status: [ success, failure ]
 
   - name: code-analysis
-    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java17:latest
+    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
     environment:
       SONARCLOUD_TOKEN:
         from_secret: sonarcloud_token
@@ -245,7 +245,7 @@ steps:
 
   # This is in the PR pipeline as only PR events get the necessary information for proper github integration
   - name: code-analysis
-    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java17:latest
+    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
     environment:
       SONARCLOUD_TOKEN:
         from_secret: sonarcloud_token
@@ -287,7 +287,7 @@ data: 86lXx36mRLEPdNz4FRxizf3Ak6ELZhM3V1/rwjtTEtX2EsQjz0BMFsSujlhCSjWiOWJPMWGeRQ
 
 kind: secret
 name: sonarcloud_token
-data: 3YdO3QScFVxr1EHSBu768DAhDdyDI04JS6vPe7gWYY20WP9Bh/goq4pvDpBhqFsyBbVFLJ3yLh+ChG4Oneswf0TovMk=
+data: AHIf0l5v5QiL669synYw38c5skpiHn3kERazqTqRFAl2uVtPZS07nJrVu5y20tY47T/zc9MDTLcWU2JGd8IoMzeCEb1OOgBrlO/l/tg7Wh5F+6A69ZNzfFwhQpQ=
 
 ---
 

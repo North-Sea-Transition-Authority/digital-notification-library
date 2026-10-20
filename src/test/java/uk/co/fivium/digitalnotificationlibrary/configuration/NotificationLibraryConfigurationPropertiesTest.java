@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.Set;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Nested;
@@ -15,21 +15,28 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.validation.BeanPropertyBindingResult;
 
 @DisplayName("GIVEN I want to configure the library")
 class NotificationLibraryConfigurationPropertiesTest {
 
-  private static final NotificationLibraryConfigurationPropertiesTestUtil.Builder propertiesBuilder
-      = NotificationLibraryConfigurationPropertiesTestUtil.builder();
+  private NotificationLibraryConfigurationPropertiesTestUtil.Builder propertiesBuilder;
+
+  @BeforeEach
+  void resetBuilder() {
+    // Use a fresh builder per test so mutable state (e.g. notification properties) does not
+    // leak between tests, which is order-dependent and not guaranteed across JUnit versions.
+    propertiesBuilder = NotificationLibraryConfigurationPropertiesTestUtil.builder();
+  }
 
   @DisplayName("WHEN I am in test mode")
   @Nested
   class WhenTestMode {
 
-    @BeforeAll
-    static void setup() {
+    @BeforeEach
+    void setup() {
       propertiesBuilder.withMode(NotificationMode.TEST);
     }
 
@@ -102,7 +109,7 @@ class NotificationLibraryConfigurationPropertiesTest {
     static class NullOrEmptyRecipients implements ArgumentsProvider {
 
       @Override
-      public Stream<Arguments> provideArguments(ExtensionContext context) {
+      public Stream<Arguments> provideArguments(ParameterDeclarations parameters, ExtensionContext context) {
         return Stream.of(
             Arguments.of(Named.of("WHEN null recipients are provided", null)),
             Arguments.of(Named.of("WHEN an empty set of recipients are provided", Set.of()))
@@ -115,8 +122,8 @@ class NotificationLibraryConfigurationPropertiesTest {
   @Nested
   class WhenProductionMode {
 
-    @BeforeAll
-    static void setup() {
+    @BeforeEach
+    void setup() {
       propertiesBuilder.withMode(NotificationMode.PRODUCTION);
     }
 

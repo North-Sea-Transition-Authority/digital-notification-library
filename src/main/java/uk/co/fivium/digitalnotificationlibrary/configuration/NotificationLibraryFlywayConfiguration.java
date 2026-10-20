@@ -4,9 +4,9 @@ import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
@@ -46,8 +46,8 @@ class NotificationLibraryFlywayConfiguration {
 
   private DataSource overrideDataSource(DataSourceProperties dataSourceProperties, String flywayUser) {
     return DataSourceBuilder.create()
-        .driverClassName(dataSourceProperties.getDriverClassName())
-        .url(dataSourceProperties.getUrl())
+        .driverClassName(dataSourceProperties.determineDriverClassName())
+        .url(dataSourceProperties.determineUrl())
         .username(flywayUser)
         .password(dataSourceProperties.getPassword())
         .build();

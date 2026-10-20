@@ -270,7 +270,7 @@ class SendEmailIntegrationTest extends AbstractIntegrationTest {
 
   @DisplayName("AND I want any file attachments")
   @Nested
-  class whenFileAttachments {
+  class WhenFileAttachments {
 
     @DisplayName("WHEN notify sends the email successfully")
     @Nested

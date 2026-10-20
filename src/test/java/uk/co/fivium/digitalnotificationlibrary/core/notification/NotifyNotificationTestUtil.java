@@ -21,7 +21,8 @@ class NotifyNotificationTestUtil {
 
     private Instant sentAt = Instant.now();
 
-    private Builder() {}
+    private Builder() {
+    }
 
     Builder withStatus(String status) {
       this.status = status;

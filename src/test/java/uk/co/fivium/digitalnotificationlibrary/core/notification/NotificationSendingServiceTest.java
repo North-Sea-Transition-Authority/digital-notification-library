@@ -217,7 +217,8 @@ class NotificationSendingServiceTest {
 
       @DisplayName("THEN the email is sent to notify")
       @Test
-      void whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties() throws IOException, NotificationClientException {
+      void whenQueuedEmailNotification_andSuccessfulNotifyRequest_thenVerifySavedProperties()
+          throws IOException, NotificationClientException {
         var fileId = UUID.randomUUID();
         var fileName = "fileName";
 
@@ -614,7 +615,8 @@ class NotificationSendingServiceTest {
 
       @ParameterizedTest(name = "THEN the email is set to FAILED_NOT_SENT when a {0} response is returned from notify")
       @ValueSource(ints = {400, 413})
-      void whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(int permanentErrorHttpStatus) throws NotificationClientException {
+      void whenEmailNotification_andPermanentErrorNotifyResponse_thenVerifySavedProperties(
+          int permanentErrorHttpStatus) throws NotificationClientException {
         var fileId = UUID.randomUUID();
         var fileName = "filename.pdf";
         var fileContents = new byte[]{};

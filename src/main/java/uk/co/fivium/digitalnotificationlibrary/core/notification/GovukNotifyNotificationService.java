@@ -1,6 +1,5 @@
 package uk.co.fivium.digitalnotificationlibrary.core.notification;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
@@ -10,7 +9,6 @@ class GovukNotifyNotificationService {
 
   private final NotificationClient govukNotificationClient;
 
-  @Autowired
   GovukNotifyNotificationService(NotificationClient govukNotificationClient) {
     this.govukNotificationClient = govukNotificationClient;
   }

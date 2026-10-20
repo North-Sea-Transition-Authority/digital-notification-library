@@ -5,8 +5,7 @@ import java.time.Clock;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpStatus;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.hc.core5.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationMode;
@@ -40,7 +39,6 @@ public class NotificationLibraryClient {
    * @param clock                          The clock instance
    * @param libraryConfigurationProperties The configuration properties for the library
    */
-  @Autowired
   public NotificationLibraryClient(NotificationLibraryNotificationRepository notificationRepository,
                                    TemplateService templateService,
                                    Clock clock,

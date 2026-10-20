@@ -27,10 +27,10 @@ with the library. Your customer will need to register the application on our beh
 department (e.g. with a gov.uk domain) or from an approved regulator can create new Notify accounts. They will need 
 to add someone from Fivium to the account once it has been registered.
 
-### Be on at least version 3.0.0 of Spring Boot
+### Be on at least version 4.0.0 of Spring Boot
 
-The library persists notifications to your applications database. This uses the features from the `jakarta.persistence`
-package. As a result, your application needs to be running at least version `3.0.0` of Spring Boot.
+The library is built against Spring Boot 4 and persists notifications to your applications database using features from
+the `jakarta.persistence` package. As a result, your application needs to be running at least version `4.0.0` of Spring Boot.
 
 ### Be managing its database migrations using Flyway
 

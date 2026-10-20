@@ -7,7 +7,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
 
@@ -20,7 +19,6 @@ class NotificationRetryScheduleService {
 
   private final NotificationLibraryConfigurationProperties libraryConfigurationProperties;
 
-  @Autowired
   NotificationRetryScheduleService(Clock clock,
                                    NotificationLibraryConfigurationProperties libraryConfigurationProperties) {
     this.clock = clock;

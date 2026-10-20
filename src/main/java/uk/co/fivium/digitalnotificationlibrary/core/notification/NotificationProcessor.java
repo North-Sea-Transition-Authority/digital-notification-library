@@ -6,7 +6,6 @@ import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uk.co.fivium.digitalnotificationlibrary.configuration.NotificationLibraryConfigurationProperties;
@@ -21,7 +20,6 @@ class NotificationProcessor {
 
   private final NotificationStatusUpdateService notificationStatusUpdateService;
 
-  @Autowired
   NotificationProcessor(NotificationSendingService notificationSendingService,
                         NotificationStatusUpdateService notificationStatusUpdateService) {
     this.notificationSendingService = notificationSendingService;
